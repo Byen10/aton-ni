@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Activity Logs JSON endpoints (session-authenticated)
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+    Route::post('/activity-logs', [ActivityLogController::class, 'store']);
     Route::get('/activity-logs/user/{userId}', [ActivityLogController::class, 'forUser']);
     Route::get('/activity-logs/model/{modelType}/{modelId?}', [ActivityLogController::class, 'forModel']);
     Route::get('/activity-logs/recent', [ActivityLogController::class, 'recent']);

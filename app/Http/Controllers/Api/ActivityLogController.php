@@ -35,6 +35,46 @@ class ActivityLogController extends Controller
     }
 
     /**
+     * Store a new activity log entry
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|max:255',
+            'description' => 'required|string',
+            'model_type' => 'nullable|string|max:255',
+            'model_id' => 'nullable|integer',
+            'old_values' => 'nullable|array',
+            'new_values' => 'nullable|array',
+        ]);
+
+        // If model info provided, we won't try to resolve an actual model instance here
+        // We just pass null for the model param and let values be stored as provided
+        $log = \App\Services\ActivityLogService::log(
+            $validated['action'],
+            $validated['description'],
+            null,
+            $validated['old_values'] ?? null,
+            $validated['new_values'] ?? null,
+            $request
+        );
+
+        // Override the default model_type/id if provided explicitly in payload
+        if (!empty($validated['model_type']) || !empty($validated['model_id'])) {
+            $log->model_type = $validated['model_type'] ?? $log->model_type;
+            $log->model_id = $validated['model_id'] ?? $log->model_id;
+            $log->save();
+            $log->load('user');
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $log,
+            'message' => 'Activity logged successfully',
+        ], 201);
+    }
+
+    /**
      * Get activity logs for a specific user
      */
     public function forUser(Request $request, int $userId): JsonResponse

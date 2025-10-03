@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Search, Printer, Check, X, ChevronDown, Eye, Pencil } from 'lucide-react';
 import GlobalHeader from './components/GlobalHeader';
 import HomeSidebar from './HomeSidebar';
@@ -250,12 +250,7 @@ const ViewRequest = () => {
     }
   };
 
-  // Auto-switch to current holder view if there are transactions
-  useEffect(() => {
-    if (currentHolders.length > 0 && view === 'viewRequest') {
-      setView('currentHolder');
-    }
-  }, [currentHolders.length, view]);
+  // Removed auto-switch: keep user's selected view (default: 'viewRequest')
 
   // Small UI formatter helpers
   const formatRequestMode = (mode) => {
