@@ -26,17 +26,34 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
     }
   }, [isOpen]);
 
+  const getCsrfToken = async () => {
+    const fromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (fromMeta) return fromMeta;
+    try {
+      const res = await fetch('/csrf-token', { credentials: 'same-origin' });
+      if (res.ok) {
+        const data = await res.json();
+        return data?.csrf_token || '';
+      }
+    } catch (_) {}
+    return '';
+  };
+
   if (!isOpen) return null;
 
   const handleSave = async () => {
     try {
+      const csrf = await getCsrfToken();
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': csrf,
+          'X-Requested-With': 'XMLHttpRequest',
         },
+        // Send session cookie so Laravel auth can identify the user
+        credentials: 'same-origin',
         body: JSON.stringify({
           name: `${editData.firstName} ${editData.lastName}`.trim(),
           email: editData.email,
@@ -50,14 +67,41 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
       const result = await response.json();
       
       if (result.success) {
-        // Update the user data in the parent component
-        if (user && typeof user === 'object') {
-          Object.assign(user, result.data);
-        }
+        // Persist updated user so header/blue card refreshes without reload
+        try {
+          const existing = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
+          const normalized = {
+            ...existing,
+            ...result.data,
+            // Normalize role shape for sidebar/permissions
+            role: {
+              name: result.data.role_name || existing?.role?.name,
+              display_name: result.data.role || existing?.role?.display_name,
+              permissions: existing?.role?.permissions || [],
+            },
+          };
+          localStorage.setItem('user', JSON.stringify(normalized));
+        } catch (e) { /* ignore storage errors */ }
+
+        // Reflect changes in currently shown modal data
+        const fullName = result.data?.name || `${editData.firstName} ${editData.lastName}`.trim();
+        const [first, ...rest] = fullName.split(' ');
+        setEditData((prev) => ({
+          ...prev,
+          firstName: first || prev.firstName,
+          lastName: rest.join(' ') || prev.lastName,
+          email: result.data?.email ?? prev.email,
+          phone: result.data?.phone ?? prev.phone,
+          location: result.data?.location ?? prev.location,
+          role: result.data?.role ?? prev.role,
+        }));
+
         setIsEditing(false);
         alert('Profile updated successfully!');
-        // Optionally reload the page to reflect changes
-        window.location.reload();
+        // Ensure all components pick up latest user info
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
       } else {
         alert(result.message || 'Failed to update profile');
       }
@@ -86,13 +130,17 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
     }
 
     try {
+      const csrf = await getCsrfToken();
       const response = await fetch('/api/profile/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': csrf,
+          'X-Requested-With': 'XMLHttpRequest',
         },
+        // Include cookies for session-authenticated request
+        credentials: 'same-origin',
         body: JSON.stringify(passwordData),
       });
 
@@ -122,6 +170,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
     }, 300);
   };
 
+  const fullName = `${editData.firstName} ${editData.lastName}`.trim();
+
   return (
     <div className={`fixed inset-0 z-50 flex justify-end profile-backdrop-enter`}>
       <div className={`bg-white w-full max-w-2xl h-full shadow-2xl shadow-blue-500/50 profile-modal-enter ${isAnimating ? 'profile-modal-enter' : 'profile-modal-exit'}`}>
@@ -147,9 +197,9 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
               )}
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold">{user?.name || 'Loading...'}</h3>
-              <p className="text-blue-100 text-lg">{user?.role || 'IT Admin'}</p>
-              <p className="text-blue-100 text-sm">{user?.location || user?.department || 'IT Department'}</p>
+              <h3 className="text-2xl font-bold">{fullName || user?.name || 'Loading...'}</h3>
+              <p className="text-blue-100 text-lg">{editData.role || user?.role || 'IT Admin'}</p>
+              <p className="text-blue-100 text-sm">{editData.location || user?.location || user?.department || 'IT Department'}</p>
             </div>
             <button
               onClick={() => setIsEditing(!isEditing)}
@@ -173,6 +223,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-3">First Name</label>
               {isEditing ? (
                 <input
+                  name="firstName"
+                  id="firstName"
                   type="text"
                   value={editData.firstName}
                   onChange={(e) => setEditData({...editData, firstName: e.target.value})}
@@ -188,6 +240,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-3">Last Name</label>
               {isEditing ? (
                 <input
+                  name="lastName"
+                  id="lastName"
                   type="text"
                   value={editData.lastName}
                   onChange={(e) => setEditData({...editData, lastName: e.target.value})}
@@ -203,6 +257,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-3">Email Address</label>
               {isEditing ? (
                 <input
+                  name="email"
+                  id="email"
                   type="email"
                   value={editData.email}
                   onChange={(e) => setEditData({...editData, email: e.target.value})}
@@ -218,6 +274,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-3">Phone Number</label>
               {isEditing ? (
                 <input
+                  name="phone"
+                  id="phone"
                   type="tel"
                   value={editData.phone}
                   onChange={(e) => setEditData({...editData, phone: e.target.value})}
@@ -233,6 +291,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-3">Location</label>
               {isEditing ? (
                 <input
+                  name="location"
+                  id="location"
                   type="text"
                   value={editData.location}
                   onChange={(e) => setEditData({...editData, location: e.target.value})}
@@ -248,6 +308,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-3">Account Type</label>
               {isEditing ? (
                 <select
+                  name="role"
+                  id="role"
                   value={editData.role}
                   onChange={(e) => setEditData({...editData, role: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2262C6] focus:border-[#2262C6] transition-colors"
@@ -300,6 +362,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
                   <input
+                    name="current_password"
+                    id="current_password"
                     type="password"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
@@ -311,6 +375,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
                   <input
+                    name="new_password"
+                    id="new_password"
                     type="password"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
@@ -322,6 +388,8 @@ const ProfileDetailsModal = ({ isOpen, onClose, user }) => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
                   <input
+                    name="confirm_password"
+                    id="confirm_password"
                     type="password"
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}

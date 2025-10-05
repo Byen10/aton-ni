@@ -54,9 +54,9 @@ Route::apiResource('categories', CategoryController::class);
 use App\Http\Controllers\Api\UserController;
 Route::apiResource('users', UserController::class);
 
-// Profile management API routes
+// Profile management API routes (use web session auth)
 use App\Http\Controllers\ProfileController;
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['web','auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);

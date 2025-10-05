@@ -50,6 +50,8 @@ const BubbleProfile = ({
 
     const handleEditProfile = () => {
         setIsOpen(false);
+        // Open the same profile details modal for editing
+        setShowProfileDetails(true);
         if (onEditProfile) {
             onEditProfile();
         }

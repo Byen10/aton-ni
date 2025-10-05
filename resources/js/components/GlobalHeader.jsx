@@ -53,6 +53,7 @@ const GlobalHeader = ({ title = "", onSearch, hideSearch = false, showTitle = tr
           const data = await response.json();
           if (data.success) {
             setUser(data.data);
+            try { localStorage.setItem('user', JSON.stringify(data.data)); } catch (e) {}
           } else {
             // Try to get user from localStorage
             const storedUser = localStorage.getItem('user');
@@ -193,6 +194,8 @@ const GlobalHeader = ({ title = "", onSearch, hideSearch = false, showTitle = tr
         <div className="flex-1" style={{ maxWidth: "644px" }}>
           <div className="relative">
             <input
+              id="global_search"
+              name="global_search"
               type="text"
               placeholder="Search"
               className="w-full pl-10 pr-4 py-3 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"

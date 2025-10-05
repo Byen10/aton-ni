@@ -133,6 +133,8 @@ const HomeSidebar = ({ onSelect }) => {
   const can = (perm) => {
     if (isSuperAdmin) return true;
     if (!perm) return false;
+    // If permissions are not loaded or empty, default to showing menus
+    if (!permissions || (Array.isArray(permissions) && permissions.length === 0)) return true;
     return Array.isArray(permissions) && (permissions.includes('*') || permissions.includes(perm));
   };
 
