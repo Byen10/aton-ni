@@ -10,7 +10,14 @@ const HomePage = () => {
     availableStock: 0,
     currentHolder: 0,
     categories: [],
-    newArrivals: []
+    newArrivals: [],
+    equipmentStats: {
+      laptops: 0,
+      keyboards: 0,
+      monitors: 0,
+      mice: 0
+    },
+    reportStats: {}
   });
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +40,78 @@ const HomePage = () => {
           const totalEquipment = equipment.length;
           const availableStock = equipment.filter(eq => eq.status === 'available').length;
           const currentHolder = equipment.filter(eq => eq.status === 'in_use').length;
+
+          // Calculate equipment type stats with prices
+          const equipmentStats = {
+            laptops: {
+              count: 0,
+              totalPrice: 0,
+              items: []
+            },
+            keyboards: {
+              count: 0,
+              totalPrice: 0,
+              items: []
+            },
+            monitors: {
+              count: 0,
+              totalPrice: 0,
+              items: []
+            },
+            mice: {
+              count: 0,
+              totalPrice: 0,
+              items: []
+            }
+          };
+
+          // Process equipment data by type heuristics (legacy)
+          equipment.forEach(eq => {
+            const price = parseFloat((eq && (eq.purchase_price ?? eq.price)) || 0) || 0;
+            const typeSource = (eq?.category?.name || eq?.name || eq?.model || '').toLowerCase();
+
+            if (typeSource.includes('laptop')) {
+              equipmentStats.laptops.count++;
+              equipmentStats.laptops.totalPrice += price;
+              equipmentStats.laptops.items.push(eq);
+            } else if (typeSource.includes('keyboard')) {
+              equipmentStats.keyboards.count++;
+              equipmentStats.keyboards.totalPrice += price;
+              equipmentStats.keyboards.items.push(eq);
+            } else if (typeSource.includes('monitor')) {
+              equipmentStats.monitors.count++;
+              equipmentStats.monitors.totalPrice += price;
+              equipmentStats.monitors.items.push(eq);
+            } else if (typeSource.includes('mouse')) {
+              equipmentStats.mice.count++;
+              equipmentStats.mice.totalPrice += price;
+              equipmentStats.mice.items.push(eq);
+            }
+          });
+
+          // Build Report Overview stats by category (dynamic)
+          const reportStats = {};
+          // Tally by existing categories
+          categories.forEach(cat => {
+            const inCategory = equipment.filter(eq => eq.category_id === cat.id);
+            const count = inCategory.length;
+            const totalPrice = inCategory.reduce((sum, eq) => sum + (parseFloat((eq && (eq.purchase_price ?? eq.price)) || 0) || 0), 0);
+            reportStats[cat.name] = {
+              count,
+              totalPrice,
+              items: inCategory
+            };
+          });
+          // Include Uncategorized bucket
+          const uncategorized = equipment.filter(eq => !eq.category_id);
+          if (uncategorized.length > 0) {
+            const totalPrice = uncategorized.reduce((sum, eq) => sum + (parseFloat((eq && (eq.purchase_price ?? eq.price)) || 0) || 0), 0);
+            reportStats['Uncategorized'] = {
+              count: uncategorized.length,
+              totalPrice,
+              items: uncategorized
+            };
+          }
 
           // Process categories with equipment counts and status
           const categoriesWithStats = categories.map(cat => {
@@ -80,7 +159,9 @@ const HomePage = () => {
             availableStock,
             currentHolder,
             categories: categoriesWithStats,
-            newArrivals
+            newArrivals,
+            equipmentStats,
+            reportStats
           });
         }
       } catch (error) {
@@ -230,21 +311,62 @@ const HomePage = () => {
             </div>
             
             {/* Additional Boxes */}
-            <div className="grid grid-cols-2 gap-6 mt-6 mb-6">
+            <div className="mt-6 mb-6">
               {/* Report Overview */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Report Overview</h3>
+              <div className="bg-[#F8FAFF] rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-gray-800">Report Overview</h3>
                 </div>
-                <div className="h-40 bg-gray-100 rounded-xl border border-dashed border-gray-300"></div>
+                <div className="mt-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-end mb-4 px-4">
+                    <div className="text-sm font-medium text-gray-600 mr-20">Quantity</div>
+                    <div className="text-sm font-medium text-gray-600">Overall Price</div>
+                  </div>
+
+                  {/* Equipment Rows */}
+                  <div className="space-y-5">
+                    {(() => {
+                      // Prefer category-driven reportStats; fallback to equipmentStats if empty
+                      const stats = (dashboardData.reportStats && Object.keys(dashboardData.reportStats).length > 0)
+                        ? dashboardData.reportStats
+                        : dashboardData.equipmentStats || {};
+                      const entries = Object.entries(stats);
+                      if (entries.length === 0) {
+                        return (
+                          <div className="text-center text-gray-500 text-sm">No data</div>
+                        );
+                      }
+                      const maxCount = Math.max(1, ...entries.map(([_, v]) => (v?.count || 0)));
+                      const labelFor = (key) => key;
+                      return entries.map(([key, value]) => {
+                        const count = value?.count || 0;
+                        const total = value?.totalPrice || 0;
+                        const widthPct = Math.min(100, Math.round((count / maxCount) * 100));
+                        return (
+                          <div className="flex items-center" key={key}>
+                            <div className="w-32">
+                              <span className="text-sm text-gray-700">{labelFor(key)}</span>
+                            </div>
+                            <div className="flex-1 mx-4">
+                              <div className="bg-[#E6EEF9] h-8 rounded-lg relative">
+                                <div className="bg-[#2E90FA] h-full rounded-lg" style={{ width: `${widthPct}%` }}></div>
+                              </div>
+                            </div>
+                            <div className="w-20 text-center">
+                              <span className="text-sm font-medium text-gray-900">{count}</span>
+                            </div>
+                            <div className="w-32 text-right text-sm text-gray-600">
+                              ₱{Number(total || 0).toLocaleString()}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
               </div>
               {/* Add Category */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Add Category</h3>
-                </div>
-                <div className="h-40 bg-gray-100 rounded-xl border border-dashed border-gray-300"></div>
-              </div>
             </div>
           </div>
         </main>
