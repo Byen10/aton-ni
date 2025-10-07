@@ -39,7 +39,7 @@ const EmployeePage = () => {
           setEmployees(data.data.map(e => ({
             id: e.id,
             name: `${e.first_name} ${e.last_name}`,
-            position: e.position,
+            employeeType: e.employee_type || 'Regular',
             department: e.department || '',
             badge: (e.first_name?.[0] || '').toUpperCase(),
             color: getBadgeColor(e.first_name)
@@ -68,7 +68,7 @@ const EmployeePage = () => {
           setEmployees(data.data.map(e => ({
             id: e.id,
             name: `${e.first_name} ${e.last_name}`,
-            position: e.position,
+            employeeType: e.employee_type || 'Regular',
             department: e.department || '',
             email: e.email,
             phone: e.phone || '',
@@ -179,7 +179,7 @@ const EmployeePage = () => {
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.employeeType.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -233,7 +233,7 @@ const EmployeePage = () => {
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-600">
                 <div className="col-span-4">Name</div>
-                <div className="col-span-3">Position</div>
+                <div className="col-span-3">Employee Type</div>
                 <div className="col-span-3">Department</div>
                 <div className="col-span-2 text-center">Actions</div>
               </div>
@@ -253,7 +253,7 @@ const EmployeePage = () => {
                         </div>
                         <span className="text-gray-900 font-medium">{e.name}</span>
                       </div>
-                      <div className="col-span-3 text-gray-600">{e.position}</div>
+                      <div className="col-span-3 text-gray-600">{e.employeeType}</div>
                       <div className="col-span-3 text-gray-600">{e.department}</div>
                       <div className="col-span-2 flex items-center justify-center space-x-3">
                         <button

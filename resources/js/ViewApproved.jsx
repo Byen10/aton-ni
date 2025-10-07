@@ -17,8 +17,8 @@ const ViewApproved = () => {
       try {
         const res = await fetch('/api/requests?status=approved');
         const data = await res.json();
-        if (data.success && Array.isArray(data.data.data)) {
-          setApproved(data.data.data);
+        if (data.success && Array.isArray(data.data)) {
+          setApproved(data.data);
         }
       } catch (e) {
         console.error('Failed to fetch approved requests:', e);
