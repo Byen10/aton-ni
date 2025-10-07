@@ -419,12 +419,7 @@ const AddStocks = () => {
         {isAddStocksOpen && (
           <AddStocksModal
             onClose={closeModal}
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
-            serialNumbers={serialNumbers}
-            addSerialRow={addSerialRow}
-            removeSerialRow={removeSerialRow}
-            updateSerial={updateSerial}
+            selectedEquipment={selectedEquipment}
           />
         )}
         {isAddItemOpen && (
@@ -441,13 +436,14 @@ const AddStocks = () => {
 
 export default AddStocks;
 
-// Modal Component
+// Modal Component - Modern UI Design
 const AddStocksModal = ({ onClose, selectedEquipment }) => {
-  const [serialNumbers, setSerialNumbers] = useState(['']);
+  const [serialNumbers, setSerialNumbers] = useState(['4354354', '4354354', '4354354']);
   const [errors, setErrors] = useState({});
   const [receipt, setReceipt] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [newFieldIndex, setNewFieldIndex] = useState(null);
 
   const handleSerialChange = (index, value) => {
     const newSerialNumbers = [...serialNumbers];
@@ -456,12 +452,18 @@ const AddStocksModal = ({ onClose, selectedEquipment }) => {
   };
 
   const addSerialField = () => {
-    setSerialNumbers([...serialNumbers, '']);
+    if (serialNumbers.length < 10) {
+      const newSerialNumbers = [...serialNumbers, ''];
+      setSerialNumbers(newSerialNumbers);
+      setNewFieldIndex(serialNumbers.length);
+    }
   };
 
   const removeSerialField = (index) => {
-    const newSerialNumbers = serialNumbers.filter((_, idx) => idx !== index);
-    setSerialNumbers(newSerialNumbers);
+    if (serialNumbers.length > 1) {
+      const newSerialNumbers = serialNumbers.filter((_, idx) => idx !== index);
+      setSerialNumbers(newSerialNumbers);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -524,163 +526,231 @@ const AddStocksModal = ({ onClose, selectedEquipment }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-[700px] max-w-[92vw] p-6 max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute right-4 top-4 text-gray-500 hover:text-blue-600">
-          <X className="h-6 w-6" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0" onClick={onClose} />
+      
+      {/* Modal with blue shadow */}
+      <div className="relative bg-white rounded-3xl w-[480px] max-w-[90vw] p-8 max-h-[85vh] overflow-y-auto" 
+           style={{
+             boxShadow: '0 30px 70px -12px rgba(34, 98, 198, 0.5)'
+           }}>
+        
+        {/* Decorative bubble */}
+        <div className="absolute -top-4 -right-4 w-8 h-8 bg-blue-100 rounded-full opacity-60"></div>
+        <div className="absolute -bottom-2 -left-2 w-6 h-6 bg-blue-200 rounded-full opacity-40"></div>
+        <div className="absolute top-1/4 -left-3 w-4 h-4 bg-blue-300 rounded-full opacity-30"></div>
+        {/* Close button */}
+        <button 
+          onClick={onClose} 
+          className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 transition-all duration-200 p-2 rounded-full hover:bg-gray-100/50 backdrop-blur-sm"
+        >
+          <X className="h-5 w-5" />
         </button>
-        <h3 className="text-xl font-bold text-blue-600 text-center">Add Stocks</h3>
+        
+        {/* Title */}
+        <h3 className="text-2xl font-bold text-center mb-8" style={{ color: '#2262C6' }}>
+          Add Stocks
+        </h3>
 
-        <form onSubmit={handleSubmit}>
-          {/* Selected Item Info */}
-          <div className="mt-5">
-            <label className="text-sm text-gray-600">Item</label>
-            <div className="mt-2 flex items-start space-x-4">
-              {selectedEquipment.item_image ? (
-                <img 
-                  src={`/storage/${selectedEquipment.item_image}`}
-                  alt={selectedEquipment.name}
-                  className="w-20 h-20 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400 text-xs">No image</span>
-                </div>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Product Information Card with soft blue glow */}
+          <div className="bg-gradient-to-br from-blue-50/80 to-blue-100/60 rounded-2xl p-6 shadow-lg border border-blue-200/30 backdrop-blur-sm"
+               style={{
+                 boxShadow: '0 8px 32px rgba(34, 98, 198, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+               }}>
+            <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h4 className="font-medium text-gray-900">{selectedEquipment.name}</h4>
-                <p className="text-sm text-gray-500">{selectedEquipment.specifications}</p>
-                <div className="mt-1 flex items-center gap-3 text-sm">
-                  <span className="text-gray-600">Brand: {selectedEquipment.brand}</span>
-                  <span className="text-gray-600">Category: {selectedEquipment.category?.name}</span>
+                <div className="text-lg font-bold text-gray-800 mb-1">LENOVO</div>
+                <div className="text-sm text-gray-600">
+                  icore 5 16gb RAM, 1T storage, Windows 11
                 </div>
               </div>
+              <button 
+                type="button"
+                className="p-3 rounded-2xl bg-white/60 hover:bg-white/80 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm"
+                title="More details"
+                style={{
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                </svg>
+              </button>
             </div>
           </div>
 
-          {/* Serial Numbers */}
-          <div className="mt-6">
-            <label className="text-sm text-gray-600">Serial Numbers</label>
-            <div className="mt-2 space-y-3">
+          {/* Serial Numbers Section - Clean minimal design */}
+          <div className="space-y-3">
+            <h4 className="text-lg font-semibold text-gray-800 mb-3">Serial Numbers</h4>
+            <div className="space-y-3">
               {serialNumbers.map((serial, idx) => (
-                <div key={idx} className="flex items-center space-x-3">
-                  <input 
-                    value={serial}
-                    onChange={(e) => handleSerialChange(idx, e.target.value)}
-                    placeholder="Enter serial number"
-                    className="flex-1 px-3 py-2 rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                  />
-                  <button 
-                    type="button"
-                    onClick={addSerialField}
-                    className="p-1.5 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                  {serialNumbers.length > 1 && (
+                <div 
+                  key={idx} 
+                  className="flex items-center space-x-4"
+                  style={{ animation: newFieldIndex === idx ? 'fadeInUp 0.5s ease-out' : '' }}
+                >
+                  <div className="flex-1">
+                    <input 
+                      value={serial}
+                      onChange={(e) => handleSerialChange(idx, e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl bg-gray-50/50 border-0 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all duration-200 backdrop-blur-sm" 
+                      placeholder="Serial No."
+                      autoFocus={newFieldIndex === idx}
+                      style={{
+                        boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 0 rgba(255, 255, 255, 0.1)'
+                      }}
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <button 
+                      type="button"
+                      onClick={addSerialField}
+                      disabled={serialNumbers.length >= 10}
+                      className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      title={serialNumbers.length >= 10 ? "Maximum 10 serial numbers" : "Add another serial number"}
+                      style={{
+                        boxShadow: '0 4px 16px rgba(34, 98, 198, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
                     <button 
                       type="button"
                       onClick={() => removeSerialField(idx)}
-                      className="p-1.5 rounded-md bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
+                      disabled={serialNumbers.length <= 1}
+                      className="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      title="Remove this serial number"
+                      style={{
+                        boxShadow: '0 4px 16px rgba(239, 68, 68, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                      }}
                     >
-                      <Minus className="h-4 w-4" />
+                      <Minus className="h-3 w-3" />
                     </button>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
             {errors.serials && (
-              <p className="mt-1 text-sm text-red-500">{errors.serials}</p>
+              <p className="mt-3 text-sm text-red-500 bg-red-50/50 p-3 rounded-xl border border-red-200/50 backdrop-blur-sm">
+                {errors.serials}
+              </p>
             )}
           </div>
 
-          {/* Receipt Upload */}
-          <div className="mt-6">
-            <label className="text-sm text-gray-600">Receipt Image</label>
-            <div className="mt-2">
-              <div 
-                className={`h-36 w-full border-2 border-dashed rounded-lg ${
-                  receipt ? 'border-blue-300' : 'border-gray-300'
-                } ${
-                  errors.receipt ? 'border-red-500' : ''
-                } hover:border-blue-400 transition-colors relative overflow-hidden`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleFileChange({ target: { files: [file] } });
-                }}
-              >
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                {receiptPreview ? (
-                  <div className="relative w-full h-full">
-                    <img 
-                      src={receiptPreview} 
-                      alt="Receipt preview" 
-                      className="w-full h-full object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setReceipt(null);
-                        setReceiptPreview(null);
-                      }}
-                      className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <div className="p-2 rounded-full bg-blue-50 mb-2">
-                      <Plus className="h-6 w-6 text-blue-500" />
+          {/* Receipt Upload Section - Clean dotted border */}
+          <div className="space-y-3">
+            <h4 className="text-lg font-semibold text-gray-800">Receipt</h4>
+            <div 
+              className={`h-28 w-full border-2 border-dashed rounded-2xl ${
+                receipt ? 'border-blue-400/60 bg-blue-50/50' : 'border-gray-300/60 bg-gray-50/30'
+              } ${
+                errors.receipt ? 'border-red-400/60 bg-red-50/50' : ''
+              } hover:border-blue-400/80 hover:bg-blue-50/60 transition-all duration-300 relative overflow-hidden group backdrop-blur-sm`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const file = e.dataTransfer.files[0];
+                if (file) handleFileChange({ target: { files: [file] } });
+              }}
+              style={{
+                boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <input
+                type="file"
+                onChange={handleFileChange}
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              {receiptPreview ? (
+                <div className="relative w-full h-full">
+                  <img 
+                    src={receiptPreview} 
+                    alt="Receipt preview" 
+                    className="w-full h-full object-contain p-4"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReceipt(null);
+                      setReceiptPreview(null);
+                    }}
+                    className="absolute top-3 right-3 p-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="p-4 rounded-full bg-blue-100/60 mb-3 mx-auto w-fit backdrop-blur-sm">
+                      <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
                     </div>
-                    <div className="text-sm font-medium text-gray-700">Click to upload</div>
-                    <div className="text-xs text-gray-500 mt-1">or drag and drop</div>
-                    <div className="text-xs text-gray-400 mt-2">
-                      JPEG, PNG, GIF, WebP up to 5MB
-                    </div>
+                    <p className="text-sm font-medium text-gray-600">Click to upload receipt</p>
+                    <p className="text-xs text-gray-500 mt-1">or drag and drop</p>
                   </div>
-                )}
-              </div>
-              {errors.receipt && (
-                <p className="mt-1 text-sm text-red-500">{errors.receipt}</p>
+                </div>
               )}
             </div>
+            {errors.receipt && (
+              <p className="mt-2 text-sm text-red-500 bg-red-50/50 p-3 rounded-xl border border-red-200/50 backdrop-blur-sm">
+                {errors.receipt}
+              </p>
+            )}
           </div>
 
           {errors.submit && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+            <div className="p-4 bg-red-50/50 border border-red-200/50 text-red-700 rounded-xl backdrop-blur-sm">
               {errors.submit}
             </div>
           )}
 
-          {/* Actions */}
-          <div className="mt-6 flex justify-end">
+          {/* Save Button with gradient and glow */}
+          <div className="flex justify-end pt-4">
             <button 
               type="submit"
               disabled={loading}
-              className={`inline-flex items-center px-5 py-2 rounded-full ${
-                loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-              } text-white transition-colors`}
+              className={`inline-flex items-center px-8 py-4 rounded-2xl font-semibold text-white transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 ${
+                loading 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+              }`}
+              style={{ 
+                backgroundColor: loading ? '#60A5FA' : '#2262C6',
+                boxShadow: loading 
+                  ? '0 8px 32px rgba(96, 165, 250, 0.3)' 
+                  : '0 8px 32px rgba(34, 98, 198, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+              }}
             >
-              <span>{loading ? 'Saving...' : 'Save'}</span>
-              <ChevronRight className="ml-2 h-5 w-5" />
+              <span className="mr-2">{loading ? 'Saving...' : 'Save'}</span>
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         </form>
       </div>
+
+      {/* Custom CSS for animations and effects */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };
