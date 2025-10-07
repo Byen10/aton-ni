@@ -4,12 +4,11 @@ import HomeSidebar from "./HomeSidebar";
 import GlobalHeader from "./components/GlobalHeader";
 
 const UsersPage = () => {
-  console.log('UsersPage component is rendering');
-  
   const [admins, setAdmins] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [usersError, setUsersError] = useState("");
+  const [activeFilter, setActiveFilter] = useState("ADMIN"); // ADMIN or EMPLOYEE
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -34,19 +33,21 @@ const UsersPage = () => {
         const res = await fetch('/api/users');
         const json = await res.json();
         if (json.success && json.data) {
-          // Map admin users
-          const adminUsers = json.data.admins.map(user => ({
-            id: user.id,
-            name: user.name,
-            username: user.employee_id || user.email.split('@')[0],
-            email: user.email,
-            accountType: user.role ? user.role.display_name : 'Admin',
-            role: user.role,
-            position: user.position,
-            department: user.department,
-            phone: user.phone,
-            is_active: user.is_active
-          }));
+          // Map admin users (excluding Super Admin)
+          const adminUsers = json.data.admins
+            .filter(user => user.role?.name !== 'super_admin' && user.role?.display_name !== 'Super Admin')
+            .map(user => ({
+              id: user.id,
+              name: user.name,
+              username: user.employee_id || user.email.split('@')[0],
+              email: user.email,
+              accountType: user.role ? user.role.display_name : 'Admin',
+              role: user.role,
+              position: user.position,
+              department: user.department,
+              phone: user.phone,
+              is_active: user.is_active
+            }));
           
           // Map employee users
           const employeeUsers = json.data.employees.map(user => ({
@@ -106,7 +107,6 @@ const UsersPage = () => {
         const result = await response.json();
         
         if (result.success) {
-          // Reload users to get updated data
           window.location.reload();
         } else {
           alert(result.message || 'Failed to create user');
@@ -146,7 +146,6 @@ const UsersPage = () => {
         const result = await response.json();
         
         if (result.success) {
-          // Reload users to get updated data
           window.location.reload();
         } else {
           alert(result.message || 'Failed to update user');
@@ -176,7 +175,6 @@ const UsersPage = () => {
         const result = await response.json();
         
         if (result.success) {
-          // Reload users to get updated data
           window.location.reload();
         } else {
           alert(result.message || 'Failed to delete user');
@@ -230,10 +228,31 @@ const UsersPage = () => {
             <h1 className="text-3xl font-bold text-blue-600">Users</h1>
           </div>
 
-          {/* Add New Users Section */}
+          {/* Filter Buttons */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Add New Users</h2>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setActiveFilter("ADMIN")}
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors duration-200 ${
+                    activeFilter === "ADMIN"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  ADMIN
+                </button>
+                <button
+                  onClick={() => setActiveFilter("EMPLOYEE")}
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors duration-200 ${
+                    activeFilter === "EMPLOYEE"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  EMPLOYEE
+                </button>
+              </div>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="inline-flex items-center px-4 py-2 border border-blue-600 text-blue-600 bg-white rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -244,66 +263,9 @@ const UsersPage = () => {
             </div>
           </div>
 
-          {/* Admin Section */}
+          {/* Users Table */}
           <div className="mb-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Admin</h2>
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {admins.map((admin) => (
-                    <tr key={admin.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {admin.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {admin.username}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {admin.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {admin.accountType}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button onClick={() => openViewModal(admin)} className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-100" title="View">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(admin)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50" 
-                            title="Edit"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => openDeleteModal(admin)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50" 
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Employees Section */}
-          <div className="mb-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Employees</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">{activeFilter === "ADMIN" ? "Admin" : "Employees"}</h2>
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -318,37 +280,45 @@ const UsersPage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loadingUsers && (
                     <tr>
-                      <td colSpan="5" className="px-6 py-4 text-sm text-gray-500">Loading...</td>
+                      <td colSpan="5" className="px-6 py-4 text-sm text-gray-500 text-center">Loading...</td>
                     </tr>
                   )}
                   {usersError && !loadingUsers && (
                     <tr>
-                      <td colSpan="5" className="px-6 py-4 text-sm text-red-600">{usersError}</td>
+                      <td colSpan="5" className="px-6 py-4 text-sm text-red-600 text-center">{usersError}</td>
                     </tr>
                   )}
-                  {employees.map((employee) => (
-                    <tr key={employee.id} className="hover:bg-gray-50">
+                  {!loadingUsers && !usersError && (activeFilter === "ADMIN" ? admins : employees).map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {employee.name}
+                        {user.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {employee.username}
+                        {user.username}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {employee.email}
+                        {user.email}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {employee.accountType}
+                        {user.accountType}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button onClick={() => openViewModal(employee)} className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-100" title="View">
+                          <button onClick={() => openViewModal(user)} className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-100" title="View">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button onClick={() => openEditModal(employee)} className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50" title="Edit">
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50" 
+                            title="Edit"
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button onClick={() => openDeleteModal(employee)} className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50" title="Delete">
+                          <button
+                            onClick={() => openDeleteModal(user)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50" 
+                            title="Delete"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -363,9 +333,9 @@ const UsersPage = () => {
       </div>
 
       {/* Add User Modal */}
-     {showAddModal && (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="bg-white backdrop-blur-md rounded-xl shadow-2xl w-full max-w-3xl p-6 border border-white/20">
+      {showAddModal && (
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white backdrop-blur-md rounded-xl shadow-2xl w-full max-w-3xl p-6 border border-white/20">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-8 py-6 rounded-t-xl border-b border-blue-200">
               <div className="flex items-center justify-between">
@@ -383,85 +353,85 @@ const UsersPage = () => {
               </div>
             </div>
             
-        {/* Form Content */}
-    <div className="p-8 bg-white">
-  <div className="grid grid-cols-2 gap-6">
-    {/* Left Column */}
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Name<span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={newUser.name}
-          onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Email<span className="text-red-500">*</span>
-        </label>
-        <input
-          type="email"
-          value={newUser.email}
-          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Password<span className="text-red-500">*</span>
-        </label>
-        <input
-          type="password"
-          value={newUser.password}
-          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-    </div>
-    
-    {/* Right Column */}
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Username<span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={newUser.username}
-          onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Account type
-        </label>
-        <select
-          value={newUser.accountType}
-          onChange={(e) => setNewUser({ ...newUser, accountType: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="Employee">Employee</option>
-          <option value="IT admin">IT Admin</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Confirm Password<span className="text-red-500">*</span>
-        </label>
-        <input
-          type="password"
-          value={newUser.confirmPassword}
-          onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-    </div>
-  </div>
+            {/* Form Content */}
+            <div className="p-8 bg-white">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Name<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                
+                {/* Right Column */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Account type
+                    </label>
+                    <select
+                      value={newUser.accountType}
+                      onChange={(e) => setNewUser({ ...newUser, accountType: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="Employee">Employee</option>
+                      <option value="IT admin">IT Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password<span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={newUser.confirmPassword}
+                      onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
               
               {/* Action Buttons */}
               <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
@@ -490,8 +460,8 @@ const UsersPage = () => {
 
       {/* Edit User Modal */}
       {showEditModal && (
-     <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
-     <div className="relative bg-white backdrop-blur-md rounded-lg shadow-xl w-full max-w-2xl mx-4 border border-white/20">
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="relative bg-white backdrop-blur-md rounded-lg shadow-xl w-full max-w-2xl mx-4 border border-white/20">
             <div className="p-6">
               {/* Header with title and close button */}
               <div className="flex items-center justify-between mb-6">
@@ -520,7 +490,6 @@ const UsersPage = () => {
                       value={newUser.name}
                       onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Rica Alorro*"
                     />
                   </div>
                   <div>
@@ -532,7 +501,6 @@ const UsersPage = () => {
                       value={newUser.email}
                       onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="NOC tier 1*"
                     />
                   </div>
                   <div>
@@ -544,7 +512,6 @@ const UsersPage = () => {
                       value={newUser.password}
                       onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="VOIP*"
                     />
                   </div>
                 </div>
@@ -560,7 +527,6 @@ const UsersPage = () => {
                       value={newUser.username}
                       onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Rica Alorro*"
                     />
                   </div>
                   <div>
@@ -585,7 +551,6 @@ const UsersPage = () => {
                       value={newUser.confirmPassword}
                       onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="VOIP*"
                     />
                   </div>
                 </div>
@@ -619,8 +584,8 @@ const UsersPage = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-     <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="relative p-5 border border-gray-200 w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="relative p-5 border border-gray-200 w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Delete User</h3>
               <p className="text-sm text-gray-500 mb-6">
@@ -648,10 +613,10 @@ const UsersPage = () => {
         </div>
       )}
 
-     {/* View User Modal */}
-     {showViewModal && (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="relative bg-white backdrop-blur-md rounded-lg shadow-xl w-full max-w-md mx-4 border border-white/20">
+      {/* View User Modal */}
+      {showViewModal && (
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="relative bg-white backdrop-blur-md rounded-lg shadow-xl w-full max-w-md mx-4 border border-white/20">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-blue-600">User Details</h3>
