@@ -8,6 +8,7 @@ const RoleManagementPage = () => {
   const [admins, setAdmins] = useState([]);
 
   const [selectedAdmin, setSelectedAdmin] = useState(null);
+  const [tempPermissions, setTempPermissions] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -35,7 +36,16 @@ const RoleManagementPage = () => {
       : (typeof permissionsArray === 'string' ? (() => { try { return JSON.parse(permissionsArray); } catch { return []; } })() : []);
     const access = {};
     for (const item of permissionKeys) {
-      access[item.key] = normalized.includes(item.api || item.key);
+      // Default all permissions to false/unchecked
+      access[item.key] = false;
+    }
+    // Only set true for permissions that are explicitly granted
+    if (normalized && normalized.length > 0) {
+      for (const item of permissionKeys) {
+        if (normalized.includes(item.api || item.key)) {
+          access[item.key] = true;
+        }
+      }
     }
     return access;
   };
@@ -43,7 +53,20 @@ const RoleManagementPage = () => {
   const mapUserToAdmin = (user) => {
     const role = user.role || {};
     const permissions = role.permissions || [];
-    const accessTools = buildAccessToolsFromPermissions(permissions);
+    // Initialize all access tools as false by default
+    const accessTools = {};
+    permissionKeys.forEach(item => {
+      accessTools[item.key] = false;
+    });
+    // Only set permissions that are explicitly granted
+    if (Array.isArray(permissions) && permissions.length > 0) {
+      permissions.forEach(permission => {
+        const matchingKey = permissionKeys.find(k => k.api === permission || k.key === permission);
+        if (matchingKey) {
+          accessTools[matchingKey.key] = true;
+        }
+      });
+    }
     return {
       id: user.id,
       name: user.name,
@@ -54,6 +77,15 @@ const RoleManagementPage = () => {
       _user: user,
       _role: role,
     };
+  };
+
+  // Helper: create an all-false permission object or copy from admin.accessTools
+  const initializeTempPermissions = (admin) => {
+    const base = {};
+    permissionKeys.forEach(item => {
+      base[item.key] = !!(admin && admin.accessTools ? admin.accessTools[item.key] : false);
+    });
+    return base;
   };
 
   useEffect(() => {
@@ -98,7 +130,10 @@ const RoleManagementPage = () => {
       );
       const items = filteredAdmins.map(mapUserToAdmin);
       setAdmins(items);
-      setSelectedAdmin(items[0] || null);
+      const first = items[0] || null;
+      setSelectedAdmin(first);
+      // initialize tempPermissions for the initial selection (or all-false when no selection)
+      setTempPermissions(initializeTempPermissions(first));
     };
     load();
   }, []);
@@ -111,8 +146,21 @@ const RoleManagementPage = () => {
       description: newRole.description,
       permissions: [],
     });
-    const created = mapRoleToAdmin(res.data);
+    // Map the new role data as a user with empty permissions
+    const userWithRole = {
+      id: res.data.id,
+      name: newRole.name,
+      position: newRole.description,
+      role: {
+        ...res.data,
+        permissions: [] // Ensure permissions start empty
+      }
+    };
+    const created = mapUserToAdmin(userWithRole);
     setAdmins([...admins, created]);
+    // Select the newly created admin and ensure its temp permissions start all-false
+    setSelectedAdmin(created);
+    setTempPermissions(initializeTempPermissions(created));
     setNewRole({ name: "", display_name: "", description: "" });
     setShowAddModal(false);
   };
@@ -156,31 +204,33 @@ const RoleManagementPage = () => {
   };
 
   const handleAccessToolChange = (tool) => {
-    setSelectedAdmin({
-      ...selectedAdmin,
-      accessTools: {
-        ...selectedAdmin.accessTools,
-        [tool]: !selectedAdmin.accessTools[tool]
-      }
-    });
+    if (!selectedAdmin) return;
+    
+    // Update only the temporary permissions
+    setTempPermissions(prev => ({
+      ...prev,
+      [tool]: !prev[tool]
+    }));
   };
 
   const handleSaveAccessTools = async () => {
     if (!selectedAdmin) return;
     setOverlay({ visible: true, status: 'saving', message: 'Saving changes...' });
-    const permissions = [];
-    for (const item of permissionKeys) {
-      if (selectedAdmin.accessTools[item.key]) {
-        permissions.push(item.api || item.key);
-      }
-    }
+    // Only include permissions that are explicitly checked in temp state
+    const permissions = permissionKeys
+      .filter(item => tempPermissions[item.key] === true)
+      .map(item => item.api || item.key);
     const roleId = selectedAdmin._role?.id;
     if (!roleId) return;
     const res = await roleService.setPermissions(roleId, permissions);
     const updatedRole = res.data;
+    // Create a fresh mapping for the updated admin
     const updatedAdmin = mapUserToAdmin({ ...selectedAdmin._user, role: updatedRole });
-    setAdmins(admins.map(a => a.id === updatedAdmin.id ? updatedAdmin : a));
-    setSelectedAdmin(updatedAdmin);
+  // Only update the specific admin in the list
+  setAdmins(admins.map(a => a.id === updatedAdmin.id ? updatedAdmin : a));
+  // Update selected admin with the new permissions and re-init its temp state
+  setSelectedAdmin(updatedAdmin);
+  setTempPermissions(initializeTempPermissions(updatedAdmin));
 
     // If we just changed the role of the CURRENT logged-in user, refresh local user so sidebar updates
     try {
@@ -235,7 +285,11 @@ const RoleManagementPage = () => {
             {admins.map((admin) => (
               <div
                 key={admin.id}
-                onClick={() => setSelectedAdmin(admin)}
+                onClick={() => {
+                  setSelectedAdmin(admin);
+                  // Initialize temp permissions from current admin state (copy or all-false)
+                  setTempPermissions(initializeTempPermissions(admin));
+                }}
                 className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border ${
                   selectedAdmin?.id === admin.id
                     ? 'bg-blue-50 border-blue-200 shadow'
@@ -280,7 +334,7 @@ const RoleManagementPage = () => {
                     </span>
                     <input
                       type="checkbox"
-                      checked={!!selectedAdmin.accessTools?.[item.key]}
+                      checked={!!tempPermissions[item.key]}
                       onChange={() => handleAccessToolChange(item.key)}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
