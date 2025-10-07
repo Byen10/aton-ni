@@ -91,7 +91,12 @@ const RoleManagementPage = () => {
       
       const res = await userService.getAll();
       const adminsData = res?.data?.admins || [];
-      const items = adminsData.map(mapUserToAdmin);
+      // Filter out super_admin accounts
+      const filteredAdmins = adminsData.filter(admin => 
+        admin.role?.name !== 'super_admin' && 
+        admin.role?.display_name !== 'Super Admin'
+      );
+      const items = filteredAdmins.map(mapUserToAdmin);
       setAdmins(items);
       setSelectedAdmin(items[0] || null);
     };

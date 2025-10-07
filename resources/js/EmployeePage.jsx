@@ -21,12 +21,13 @@ const EmployeePage = () => {
   const [deleting, setDeleting] = React.useState(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [form, setForm] = React.useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
+    password: '',
     contact: '',
     address: '',
-    position: '',
-    client: ''
+    employeeType: 'Regular'
   });
   const [employees, setEmployees] = useState([]);
 
@@ -48,7 +49,15 @@ const EmployeePage = () => {
   }, []);
 
   const update = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-  const resetAll = () => setForm({ name: '', email: '', contact: '', address: '', position: '', client: '' });
+  const resetAll = () => setForm({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    contact: '',
+    address: '',
+    employeeType: 'Regular'
+  });
   const closeModal = () => setIsAddOpen(false);
 
   const refreshEmployees = () => {
@@ -78,12 +87,13 @@ const EmployeePage = () => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        first_name: form.name.split(' ')[0] || '',
-        last_name: form.name.split(' ').slice(1).join(' ') || '',
+        first_name: form.firstName,
+        last_name: form.lastName,
         email: form.email,
+        password: form.password,
         phone: form.contact,
-        position: form.position,
-        department: form.client || null,
+        address: form.address,
+        employee_type: form.employeeType,
         status: 'active',
       })
     })
@@ -103,16 +113,18 @@ const EmployeePage = () => {
   const openView = (emp) => setViewing(emp);
   const closeView = () => setViewing(null);
 
-  // Fixed openEdit function - clear form for blank fields
+  // Populate form with employee data for editing
   const openEdit = (emp) => {
     setEditing(emp);
+    const [firstName, ...lastNameParts] = emp.name.split(' ');
     setForm({
-      name: '',
-      email: '',
-      contact: '',
-      address: '',
-      position: '',
-      client: ''
+      firstName: firstName || '',
+      lastName: lastNameParts.join(' ') || '',
+      email: emp.email || '',
+      password: '',
+      contact: emp.phone || '',
+      address: emp.address || '',
+      employeeType: emp.employeeType || 'Regular'
     });
     setIsAddOpen(false);
   };
@@ -121,18 +133,17 @@ const EmployeePage = () => {
 
   const updateEmployee = () => {
     if (!editing) return;
-    const firstName = form.name.split(' ')[0] || '';
-    const lastName = form.name.split(' ').slice(1).join(' ') || '';
     fetch(`/api/employees/${editing.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
-        first_name: firstName,
-        last_name: lastName,
+        first_name: form.firstName,
+        last_name: form.lastName,
         email: form.email,
+        password: form.password || undefined,
         phone: form.contact,
-        position: form.position,
-        department: form.client || null,
+        address: form.address,
+        employee_type: form.employeeType,
         status: 'active'
       })
     })
@@ -280,25 +291,33 @@ const EmployeePage = () => {
               <button onClick={closeView} className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 text-xl">✕</button>
               <h3 className="text-2xl font-semibold text-blue-600 mb-8">Employee Details</h3>
               
-              <div className="grid grid-cols-12 gap-4 mb-6">
-                {/* Employee ID */}
-                <div className="col-span-4">
-                  <label className="block text-xs font-medium text-gray-500 mb-2">EMP ID</label>
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                {/* First Name */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">First Name</label>
                   <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900 font-medium">{viewing.id || '19247'}</span>
+                    <span className="text-gray-900">{viewing.firstName}</span>
                   </div>
                 </div>
-                
-                {/* Full Name */}
-                <div className="col-span-5">
-                  <label className="block text-xs font-medium text-gray-500 mb-2">User ID</label>
+
+                {/* Last Name */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Last Name</label>
                   <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900 font-medium">{viewing.name}</span>
+                    <span className="text-gray-900">{viewing.lastName}</span>
                   </div>
                 </div>
-                
-                {/* Password Field */}
-                <div className="col-span-3">
+
+                {/* Email */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Email</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.email}</span>
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">Password</label>
                   <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-between">
                     <span className="text-gray-900">••••••••••</span>
@@ -306,59 +325,30 @@ const EmployeePage = () => {
                       <Eye className="h-4 w-4" />
                     </button>
                   </div>
-                  <small className="text-xs text-gray-400 mt-1">Reset to Default</small>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Email */}
+
+                {/* Contact Number */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Email</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Contact Number</label>
                   <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.email || 'Christopher.Francisco@example.com'}</span>
+                    <span className="text-gray-900">{viewing.contact}</span>
                   </div>
                 </div>
-                
-                {/* Phone */}
+
+                {/* Employee Type */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Phone</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Employee Type</label>
                   <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.phone || '09123456789'}</span>
+                    <span className="text-gray-900">{viewing.employeeType}</span>
                   </div>
                 </div>
               </div>
-              
+
               {/* Address */}
               <div className="mb-6">
                 <label className="block text-xs font-medium text-gray-500 mb-2">Address</label>
                 <div className="bg-gray-100 rounded-lg p-3">
-                  <span className="text-gray-900">543 Zone 5 old brio street bacolod negros occ</span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Client/Department */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Client</label>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.department || 'Cloud Service Center'}</span>
-                  </div>
-                </div>
-                
-                {/* Position */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Position</label>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.position || 'Graphic Designer'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Issued Item */}
-              <div className="mb-8">
-                <label className="block text-xs font-medium text-gray-500 mb-2">Issued Item</label>
-                <div className="bg-gray-100 rounded-lg p-4 min-h-[80px]">
-                  <div className="bg-gray-300 rounded-lg h-6 w-full"></div>
+                  <span className="text-gray-900">{viewing.address}</span>
                 </div>
               </div>
             </div>
@@ -374,49 +364,90 @@ const EmployeePage = () => {
               <h3 className="text-xl font-semibold text-blue-500 text-center mb-8">Add employee</h3>
 
               <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Name*</label>
-                  <input 
-                    value={form.name} 
-                    onChange={update('name')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter full name" 
-                  />
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">First Name*</label>
+                    <input 
+                      value={form.firstName || ''} 
+                      onChange={(e) => setForm({...form, firstName: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter first name"
+                      tabIndex={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Email*</label>
+                    <input 
+                      type="email"
+                      value={form.email} 
+                      onChange={update('email')} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter email address"
+                      tabIndex={3}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Contact Number*</label>
+                    <input 
+                      type="tel"
+                      value={form.contact} 
+                      onChange={update('contact')} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter phone number"
+                      tabIndex={5}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Email*</label>
-                  <input 
-                    value={form.email} 
-                    onChange={update('email')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter email address" 
-                  />
+                
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Last Name*</label>
+                    <input 
+                      value={form.lastName || ''} 
+                      onChange={(e) => setForm({...form, lastName: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter last name"
+                      tabIndex={2}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Password*</label>
+                    <input 
+                      type="password"
+                      value={form.password || ''} 
+                      onChange={(e) => setForm({...form, password: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter password"
+                      tabIndex={4}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Employee Type*</label>
+                    <select 
+                      value={form.employeeType || 'Regular'} 
+                      onChange={(e) => setForm({...form, employeeType: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={6}
+                    >
+                      <option value="Regular">Regular</option>
+                      <option value="Contractor">Contractor</option>
+                      <option value="Temporary">Temporary</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Contact no.</label>
-                  <input 
-                    value={form.contact} 
-                    onChange={update('contact')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter phone number" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Position*</label>
-                  <input 
-                    value={form.position} 
-                    onChange={update('position')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter job position" 
-                  />
-                </div>
+
+                {/* Full Width Address Field */}
                 <div className="col-span-2">
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Department</label>
-                  <input 
-                    value={form.client} 
-                    onChange={update('client')} 
+                  <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
+                  <textarea 
+                    value={form.address || ''} 
+                    onChange={(e) => setForm({...form, address: e.target.value})} 
                     className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter department" 
+                    placeholder="Enter complete address"
+                    rows="3"
+                    tabIndex={7}
                   />
                 </div>
               </div>
@@ -437,49 +468,90 @@ const EmployeePage = () => {
               <button onClick={closeEdit} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 text-xl">✕</button>
               <h3 className="text-xl font-semibold text-blue-500 text-center mb-8">Edit employee</h3>
               <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Name*</label>
-                  <input 
-                    value={form.name} 
-                    onChange={update('name')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter Name" 
-                  />
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">First Name*</label>
+                    <input 
+                      value={form.firstName || ''} 
+                      onChange={(e) => setForm({...form, firstName: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter first name"
+                      tabIndex={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Email*</label>
+                    <input 
+                      type="email"
+                      value={form.email} 
+                      onChange={update('email')} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter email address"
+                      tabIndex={3}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Contact Number*</label>
+                    <input 
+                      type="tel"
+                      value={form.contact} 
+                      onChange={update('contact')} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter phone number"
+                      tabIndex={5}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Email*</label>
-                  <input 
-                    value={form.email} 
-                    onChange={update('email')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter Email" 
-                  />
+                
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Last Name*</label>
+                    <input 
+                      value={form.lastName || ''} 
+                      onChange={(e) => setForm({...form, lastName: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter last name"
+                      tabIndex={2}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Password*</label>
+                    <input 
+                      type="password"
+                      value={form.password || ''} 
+                      onChange={(e) => setForm({...form, password: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter password"
+                      tabIndex={4}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Employee Type*</label>
+                    <select 
+                      value={form.employeeType || 'Regular'} 
+                      onChange={(e) => setForm({...form, employeeType: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={6}
+                    >
+                      <option value="Regular">Regular</option>
+                      <option value="Contractor">Contractor</option>
+                      <option value="Temporary">Temporary</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Contact no.</label>
-                  <input 
-                    value={form.contact} 
-                    onChange={update('contact')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter Contact No." 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Position*</label>
-                  <input 
-                    value={form.position} 
-                    onChange={update('position')} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter Position" 
-                  />
-                </div>
+
+                {/* Full Width Address Field */}
                 <div className="col-span-2">
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Department</label>
-                  <input 
-                    value={form.client} 
-                    onChange={update('client')} 
+                  <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
+                  <textarea 
+                    value={form.address || ''} 
+                    onChange={(e) => setForm({...form, address: e.target.value})} 
                     className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter Department" 
+                    placeholder="Enter complete address"
+                    rows="3"
+                    tabIndex={7}
                   />
                 </div>
               </div>
