@@ -193,27 +193,40 @@ const ViewApproved = () => {
       }
 
       const tx = txList.data[0];
-      const response = await transactionService.print(tx.id);
-      
-      if (response.success) {
-        // Flatten API response to the shape expected by PrintReceipt
-        const r = response.data;
-        const flat = {
-          full_name: r?.employee?.full_name || `${r?.employee?.first_name || ''} ${r?.employee?.last_name || ''}`.trim(),
-          position: r?.employee?.position || '',
-          department: r?.employee?.department || '',
-          equipment_name: r?.equipment?.name || tx?.equipment_name || '',
-          serial_number: r?.equipment?.serial_number || '',
-          notes: r?.release_info?.notes || tx?.notes || '',
-        };
 
-        setPrintModal({
-          isOpen: true,
-          transactionData: flat,
-        });
-      } else {
-        alert('Error generating print data: ' + response.message);
+      // Try backend print endpoint first
+      try {
+        const response = await transactionService.print(tx.id);
+        if (response?.success) {
+          const r = response.data;
+          const flat = {
+            full_name: r?.employee?.full_name || `${r?.employee?.first_name || ''} ${r?.employee?.last_name || ''}`.trim(),
+            position: r?.employee?.position || '',
+            department: r?.employee?.department || '',
+            equipment_name: r?.equipment?.name || tx?.equipment_name || '',
+            serial_number: r?.equipment?.serial_number || '',
+            notes: r?.release_info?.notes || tx?.notes || '',
+          };
+
+          setPrintModal({ isOpen: true, transactionData: flat });
+          return;
+        }
+      } catch (e) {
+        // Fall through to local fallback below
+        console.warn('Backend print failed, falling back to local data flattening.', e);
       }
+
+      // Fallback: assemble minimal receipt data from available request/transaction fields
+      const flatFallback = {
+        full_name: transactionData.full_name || tx?.full_name || `${tx?.first_name || ''} ${tx?.last_name || ''}`.trim(),
+        position: transactionData.position || tx?.position || '',
+        department: transactionData.department || tx?.department || '',
+        equipment_name: transactionData.equipment_name || tx?.equipment_name || '',
+        serial_number: tx?.serial_number || tx?.equipment_serial_number || '',
+        notes: tx?.notes || transactionData?.notes || '',
+      };
+
+      setPrintModal({ isOpen: true, transactionData: flatFallback });
     } catch (err) {
       console.error('Error fetching print data:', err);
       alert('Error generating receipt: ' + apiUtils.handleError(err));
