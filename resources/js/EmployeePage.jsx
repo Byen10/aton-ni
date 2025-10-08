@@ -15,37 +15,7 @@ const getBadgeColor = (name) => {
 };
 
 const EmployeePage = () => {
-  const [isAddOpen, setIsAddOp                      <div>
-                    <label className="block text-sm text-gray-700 font-medium mb-2">Client*</label>
-                    <select 
-                      value={form.client} 
-                      onChange={(e) => setForm({...form, client: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={8}
-                    >
-                      <option value="">Select Client</option>
-                      {clientOptions.map(client => (
-                        <option key={client} value={client}>{client}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 font-medium mb-2">Department*</label>
-                    <select 
-                      value={form.department} 
-                      onChange={(e) => setForm({...form, department: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={9}
-                    >
-                      <option value="">Select Department</option>
-                      {departmentOptions.map(department => (
-                        <option key={department} value={department}>{department}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Full Width Address Field */}ate(false);
+  const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [viewing, setViewing] = React.useState(null);
   const [editing, setEditing] = React.useState(null);
   const [deleting, setDeleting] = React.useState(null);
@@ -79,12 +49,14 @@ const EmployeePage = () => {
   ];
 
   const departmentOptions = [
-    'IT',
-    'HR',
+    'IT Department',
+    'Human Resources',
     'Finance',
-    'Operations',
     'Marketing',
-    'Sales'
+    'Operations',
+    'Sales',
+    'Research & Development',
+    'Customer Service'
   ];
   const [employees, setEmployees] = useState([]);
 
@@ -320,7 +292,7 @@ const EmployeePage = () => {
                 filteredEmployees.map((e) => (
                   <div key={e.id} className="px-6 py-4 hover:bg-blue-50 transition-colors">
                     <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-2 flex items-center space-x-3">
+                      <div className="col-span-3 flex items-center space-x-3">
                         <div className={`w-8 h-8 ${e.color} rounded-full text-white text-sm flex items-center justify-center font-medium`}>
                           {e.badge}
                         </div>
@@ -329,7 +301,7 @@ const EmployeePage = () => {
                       <div className="col-span-2 text-gray-600">{e.employeeType}</div>
                       <div className="col-span-2 text-gray-600">{e.client}</div>
                       <div className="col-span-2 text-gray-600">{e.position}</div>
-                      <div className="col-span-2 text-gray-600">{e.department}</div>
+                      <div className="col-span-1 text-gray-600">{e.department}</div>
                       <div className="col-span-2 flex items-center justify-center space-x-3">
                         <button
                           onClick={() => openView(e)}
@@ -431,6 +403,14 @@ const EmployeePage = () => {
                   <label className="block text-xs font-medium text-gray-500 mb-2">Position</label>
                   <div className="bg-gray-100 rounded-lg p-3">
                     <span className="text-gray-900">{viewing.position}</span>
+                  </div>
+                </div>
+
+                {/* Department */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Department</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.department}</span>
                   </div>
                 </div>
               </div>
@@ -557,6 +537,18 @@ const EmployeePage = () => {
                   </div>
                 </div>
 
+                {/* Department Field */}
+                <div className="col-span-2">
+                  <label className="block text-sm text-gray-700 font-medium mb-2">Department*</label>
+                  <input 
+                    value={form.department || ''} 
+                    onChange={(e) => setForm({...form, department: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Enter department"
+                    tabIndex={9}
+                  />
+                </div>
+
                 {/* Full Width Address Field */}
                 <div className="col-span-2">
                   <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
@@ -566,7 +558,7 @@ const EmployeePage = () => {
                     className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                     placeholder="Enter complete address"
                     rows="3"
-                    tabIndex={7}
+                    tabIndex={10}
                   />
                 </div>
               </div>
@@ -689,6 +681,18 @@ const EmployeePage = () => {
                   </div>
                 </div>
 
+                {/* Department Field */}
+                <div className="col-span-2">
+                  <label className="block text-sm text-gray-700 font-medium mb-2">Department*</label>
+                  <input 
+                    value={form.department || ''} 
+                    onChange={(e) => setForm({...form, department: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Enter department"
+                    tabIndex={9}
+                  />
+                </div>
+
                 {/* Full Width Address Field */}
                 <div className="col-span-2">
                   <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
@@ -698,7 +702,7 @@ const EmployeePage = () => {
                     className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                     placeholder="Enter complete address"
                     rows="3"
-                    tabIndex={7}
+                    tabIndex={10}
                   />
                 </div>
               </div>
