@@ -380,7 +380,7 @@ const ViewRequest = () => {
             >
               {/* Name */}
               <div className="flex-1">
-                <div className="text-base font-medium text-gray-900">{req.full_name}</div>
+              <div className="text-base font-medium text-gray-900">{req.full_name}</div>
               </div>
               
               {/* Item  */}
