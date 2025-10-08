@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -231,6 +232,12 @@ class ReportController extends Controller
 
             fclose($handle);
         };
+
+        // Log the activity
+        ActivityLogService::logSystemActivity(
+            'Exported reports',
+            "Exported reports to CSV file: {$filename}"
+        );
 
         return response()->stream($callback, 200, $headers);
     }

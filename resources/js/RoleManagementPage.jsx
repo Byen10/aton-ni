@@ -52,12 +52,18 @@ const RoleManagementPage = () => {
 
   const mapUserToAdmin = (user) => {
     const role = user.role || {};
-    const permissions = role.permissions || [];
+    const userPermissions = user.user_permissions || {};
+    
+    // Determine which permissions to use (custom or role-based)
+    const isCustom = userPermissions.use_custom_permissions || false;
+    const permissions = isCustom ? (userPermissions.permissions || []) : (role.permissions || []);
+    
     // Initialize all access tools as false by default
     const accessTools = {};
     permissionKeys.forEach(item => {
       accessTools[item.key] = false;
     });
+    
     // Only set permissions that are explicitly granted
     if (Array.isArray(permissions) && permissions.length > 0) {
       permissions.forEach(permission => {
@@ -67,6 +73,7 @@ const RoleManagementPage = () => {
         }
       });
     }
+    
     return {
       id: user.id,
       name: user.name,
@@ -74,8 +81,10 @@ const RoleManagementPage = () => {
       position: role.display_name || user.position || '',
       profileImage: null,
       accessTools,
+      isCustomPermissions: isCustom,
       _user: user,
       _role: role,
+      _userPermissions: userPermissions,
     };
   };
 
@@ -216,46 +225,56 @@ const RoleManagementPage = () => {
   const handleSaveAccessTools = async () => {
     if (!selectedAdmin) return;
     setOverlay({ visible: true, status: 'saving', message: 'Saving changes...' });
-    // Only include permissions that are explicitly checked in temp state
-    const permissions = permissionKeys
-      .filter(item => tempPermissions[item.key] === true)
-      .map(item => item.api || item.key);
-    const roleId = selectedAdmin._role?.id;
-    if (!roleId) return;
-    const res = await roleService.setPermissions(roleId, permissions);
-    const updatedRole = res.data;
-    // Create a fresh mapping for the updated admin
-    const updatedAdmin = mapUserToAdmin({ ...selectedAdmin._user, role: updatedRole });
-  // Only update the specific admin in the list
-  setAdmins(admins.map(a => a.id === updatedAdmin.id ? updatedAdmin : a));
-  // Update selected admin with the new permissions and re-init its temp state
-  setSelectedAdmin(updatedAdmin);
-  setTempPermissions(initializeTempPermissions(updatedAdmin));
-
-    // If we just changed the role of the CURRENT logged-in user, refresh local user so sidebar updates
+    
     try {
-      const current = apiUtils.getCurrentUser();
-      const currentRoleName = typeof current?.role === 'string' ? current.role : current?.role?.name;
-      const changedRoleName = updatedAdmin?._role?.name;
-      if (current && changedRoleName && currentRoleName === changedRoleName) {
-        const resAuth = await fetch('/check-auth', { credentials: 'include' });
-        if (resAuth.ok) {
-          const data = await resAuth.json();
-          if (data?.authenticated && data.user) {
-            const normalized = {
-              ...data.user,
-              role: { name: data.user.role, display_name: data.user.role_display, permissions: data.user.permissions }
-            };
-            localStorage.setItem('user', JSON.stringify(normalized));
+      // Only include permissions that are explicitly checked in temp state
+      const permissions = permissionKeys
+        .filter(item => tempPermissions[item.key] === true)
+        .map(item => item.api || item.key);
+      
+      // Use user-specific permissions instead of role permissions
+      const res = await userService.setPermissions(selectedAdmin.id, permissions, true);
+      const updatedUser = res.data;
+      
+      // Create a fresh mapping for the updated admin
+      const updatedAdmin = mapUserToAdmin(updatedUser);
+      
+      // Only update the specific admin in the list
+      setAdmins(admins.map(a => a.id === updatedAdmin.id ? updatedAdmin : a));
+      
+      // Update selected admin with the new permissions and re-init its temp state
+      setSelectedAdmin(updatedAdmin);
+      setTempPermissions(initializeTempPermissions(updatedAdmin));
+
+      // If we just changed the permissions of the CURRENT logged-in user, refresh local user so sidebar updates
+      try {
+        const current = apiUtils.getCurrentUser();
+        if (current && current.id === selectedAdmin.id) {
+          const resAuth = await fetch('/check-auth', { credentials: 'include' });
+          if (resAuth.ok) {
+            const data = await resAuth.json();
+            if (data?.authenticated && data.user) {
+              const normalized = {
+                ...data.user,
+                role: { name: data.user.role, display_name: data.user.role_display, permissions: data.user.permissions },
+                user_permissions: data.user.user_permissions
+              };
+              localStorage.setItem('user', JSON.stringify(normalized));
+            }
           }
         }
+      } catch (e) {
+        console.warn('Failed to refresh current user after permission save:', e);
       }
-    } catch (e) {
-      console.warn('Failed to refresh current user after permission save:', e);
+      
+      // Show centered success and auto-hide
+      setOverlay({ visible: true, status: 'success', message: 'Changes updated' });
+      setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 1500);
+    } catch (error) {
+      console.error('Error saving permissions:', error);
+      setOverlay({ visible: true, status: 'error', message: 'Failed to save changes' });
+      setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 3000);
     }
-    // Show centered success and auto-hide
-    setOverlay({ visible: true, status: 'success', message: 'Changes updated' });
-    setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 1500);
   };
 
   return (
@@ -297,7 +316,14 @@ const RoleManagementPage = () => {
                 }`}
               >
                 <div className="grid grid-cols-2 items-center">
-                  <div className="font-semibold text-gray-600 truncate">{admin.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-600 truncate">{admin.name}</span>
+                    {admin.isCustomPermissions && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        Custom
+                      </span>
+                    )}
+                  </div>
                   <div className="text-right text-gray-900 uppercase text-meduim tracking-wide">{admin.position}</div>
                 </div>
               </div>
@@ -325,7 +351,14 @@ const RoleManagementPage = () => {
             
             {/* Access Tools Section - Scrollable */}
             <div className="flex-1 overflow-y-auto mb-4">
-              <h4 className="text-sm font-medium text-gray-900 mb-4 sticky top-0 bg-white pb-2">Access tools</h4>
+              <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2">
+                <h4 className="text-sm font-medium text-gray-900">Access tools</h4>
+                {selectedAdmin?.isCustomPermissions && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    Custom
+                  </span>
+                )}
+              </div>
               <div className="space-y-3 pr-2">
                 {selectedAdmin && permissionKeys.map((item) => (
                   <div key={item.key} className="flex items-center justify-between">
@@ -343,16 +376,52 @@ const RoleManagementPage = () => {
               </div>
             </div>
             
-            {/* Save Button - Fixed at bottom */}
-            <button
-              onClick={handleSaveAccessTools}
-              className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 flex-shrink-0"
-              disabled={overlay.visible && overlay.status === 'saving'}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </button>
+            {/* Action Buttons - Fixed at bottom */}
+            <div className="space-y-2 flex-shrink-0">
+              <button
+                onClick={handleSaveAccessTools}
+                className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60"
+                disabled={overlay.visible && overlay.status === 'saving'}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </button>
+              
+              {selectedAdmin?.isCustomPermissions && (
+                <button
+                  onClick={async () => {
+                    if (!selectedAdmin) return;
+                    setOverlay({ visible: true, status: 'saving', message: 'Resetting to role permissions...' });
+                    try {
+                      await userService.resetPermissions(selectedAdmin.id);
+                      // Reload the admin list to get updated data
+                      const res = await userService.getAll();
+                      const adminsData = res?.data?.admins || [];
+                      const filteredAdmins = adminsData.filter(admin => 
+                        admin.role?.name !== 'super_admin' && 
+                        admin.role?.display_name !== 'Super Admin'
+                      );
+                      const items = filteredAdmins.map(mapUserToAdmin);
+                      setAdmins(items);
+                      const updatedAdmin = items.find(a => a.id === selectedAdmin.id) || items[0];
+                      setSelectedAdmin(updatedAdmin);
+                      setTempPermissions(initializeTempPermissions(updatedAdmin));
+                      setOverlay({ visible: true, status: 'success', message: 'Reset to role permissions' });
+                      setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 1500);
+                    } catch (error) {
+                      console.error('Error resetting permissions:', error);
+                      setOverlay({ visible: true, status: 'error', message: 'Failed to reset permissions' });
+                      setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 3000);
+                    }
+                  }}
+                  className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-60"
+                  disabled={overlay.visible && overlay.status === 'saving'}
+                >
+                  Reset to Role
+                </button>
+              )}
+            </div>
           </div>
         </div>
         </main>

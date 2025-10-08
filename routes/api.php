@@ -54,6 +54,11 @@ Route::apiResource('categories', CategoryController::class);
 use App\Http\Controllers\Api\UserController;
 Route::apiResource('users', UserController::class);
 
+// User permissions API routes
+Route::get('/users/{id}/permissions', [UserController::class, 'getPermissions']);
+Route::post('/users/{id}/permissions', [UserController::class, 'setPermissions']);
+Route::post('/users/{id}/permissions/reset', [UserController::class, 'resetPermissions']);
+
 // Profile management API routes (use web session auth)
 use App\Http\Controllers\ProfileController;
 Route::middleware(['web','auth'])->group(function () {

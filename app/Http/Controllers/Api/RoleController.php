@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +38,12 @@ class RoleController extends Controller
             ]);
 
             $role = Role::create($validated);
+
+            // Log the activity
+            ActivityLogService::logSystemActivity(
+                'Created role',
+                "Created new role: {$role->name} ({$role->display_name})"
+            );
 
             return response()->json([
                 'success' => true,
@@ -82,6 +89,12 @@ class RoleController extends Controller
 
             $role->update($validated);
 
+            // Log the activity
+            ActivityLogService::logSystemActivity(
+                'Updated role',
+                "Updated role: {$role->name} ({$role->display_name})"
+            );
+
             return response()->json([
                 'success' => true,
                 'data' => $role,
@@ -102,7 +115,15 @@ class RoleController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $role = Role::findOrFail($id);
+        
+        // Log the activity before deletion
+        ActivityLogService::logSystemActivity(
+            'Deleted role',
+            "Deleted role: {$role->name} ({$role->display_name})"
+        );
+        
         $role->delete();
+        
         return response()->json([
             'success' => true,
             'message' => 'Role deleted successfully',
@@ -121,6 +142,12 @@ class RoleController extends Controller
 
         $role->permissions = array_values($validated['permissions']);
         $role->save();
+
+        // Log the activity
+        ActivityLogService::logSystemActivity(
+            'Updated role permissions',
+            "Updated permissions for role: {$role->name} ({$role->display_name})"
+        );
 
         return response()->json([
             'success' => true,

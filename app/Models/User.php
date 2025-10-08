@@ -79,6 +79,11 @@ class User extends Authenticatable
         return $this->hasMany(Transaction::class, 'processed_by');
     }
 
+    public function userPermissions()
+    {
+        return $this->hasOne(UserPermission::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -99,6 +104,41 @@ class User extends Authenticatable
 
     public function hasPermission($permission)
     {
+        // Check if user has custom permissions enabled
+        if ($this->userPermissions && $this->userPermissions->use_custom_permissions) {
+            return $this->userPermissions->hasPermission($permission);
+        }
+        
+        // Fall back to role permissions
         return $this->role && $this->role->hasPermission($permission);
+    }
+
+    public function getEffectivePermissions()
+    {
+        // Return custom permissions if enabled, otherwise role permissions
+        if ($this->userPermissions && $this->userPermissions->use_custom_permissions) {
+            return $this->userPermissions->permissions ?? [];
+        }
+        
+        return $this->role ? ($this->role->permissions ?? []) : [];
+    }
+
+    public function enableCustomPermissions(array $permissions = [])
+    {
+        if (!$this->userPermissions) {
+            $this->userPermissions()->create([
+                'permissions' => $permissions,
+                'use_custom_permissions' => true,
+            ]);
+        } else {
+            $this->userPermissions->setPermissions($permissions);
+        }
+    }
+
+    public function disableCustomPermissions()
+    {
+        if ($this->userPermissions) {
+            $this->userPermissions->resetToRolePermissions();
+        }
     }
 }

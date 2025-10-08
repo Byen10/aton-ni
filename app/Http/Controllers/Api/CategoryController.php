@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -48,6 +49,12 @@ class CategoryController extends Controller
             }
 
             $category->save();
+
+            // Log the activity
+            ActivityLogService::logSystemActivity(
+                'Created category',
+                "Created new category: {$category->name}"
+            );
 
             return response()->json([
                 'success' => true,
@@ -112,6 +119,12 @@ class CategoryController extends Controller
 
         $category->save();
 
+        // Log the activity
+        ActivityLogService::logSystemActivity(
+            'Updated category',
+            "Updated category: {$category->name}"
+        );
+
         return response()->json([
             'success' => true,
             'data' => $category,
@@ -134,6 +147,12 @@ class CategoryController extends Controller
 
         // Delete image if exists
         $category->deleteImage();
+        
+        // Log the activity before deletion
+        ActivityLogService::logSystemActivity(
+            'Deleted category',
+            "Deleted category: {$category->name}"
+        );
         
         $category->delete();
 

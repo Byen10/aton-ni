@@ -238,6 +238,25 @@ export const userService = {
     const response = await api.delete(`/users/${id}`);
     return response.data;
   },
+
+  // User permission methods
+  getPermissions: async (id) => {
+    const response = await api.get(`/users/${id}/permissions`);
+    return response.data;
+  },
+
+  setPermissions: async (id, permissions, useCustom = true) => {
+    const response = await api.post(`/users/${id}/permissions`, {
+      permissions,
+      use_custom: useCustom
+    });
+    return response.data;
+  },
+
+  resetPermissions: async (id) => {
+    const response = await api.post(`/users/${id}/permissions/reset`);
+    return response.data;
+  },
 };
 
 // Role Services
@@ -345,7 +364,14 @@ export const apiUtils = {
 
   hasPermission: (permission) => {
     const user = apiUtils.getCurrentUser();
-    return user?.role?.permissions?.includes(permission);
+    
+    // Check if user has custom permissions enabled
+    if (user?.user_permissions?.use_custom_permissions) {
+      return user.user_permissions.permissions?.includes(permission) || false;
+    }
+    
+    // Fall back to role permissions
+    return user?.role?.permissions?.includes(permission) || false;
   },
 };
 
