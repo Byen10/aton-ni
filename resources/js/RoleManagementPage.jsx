@@ -52,10 +52,10 @@ const RoleManagementPage = () => {
 
   const mapUserToAdmin = (user) => {
     const role = user.role || {};
-    const userPermissions = user.user_permissions || {};
+    const userPermissions = user.user_permissions || null;
     
     // Determine which permissions to use (custom or role-based)
-    const isCustom = userPermissions.use_custom_permissions || false;
+    const isCustom = userPermissions && userPermissions.use_custom_permissions === true;
     const permissions = isCustom ? (userPermissions.permissions || []) : (role.permissions || []);
     
     // Initialize all access tools as false by default
@@ -234,7 +234,11 @@ const RoleManagementPage = () => {
       
       // Use user-specific permissions instead of role permissions
       const res = await userService.setPermissions(selectedAdmin.id, permissions, true);
-      const updatedUser = res.data;
+      
+      // The API returns { success: true, data: { permissions: [...], is_custom: true, role_permissions: [...] } }
+      // We need to fetch the updated user data to get the complete user object
+      const updatedUserRes = await userService.getById(selectedAdmin.id);
+      const updatedUser = updatedUserRes.data;
       
       // Create a fresh mapping for the updated admin
       const updatedAdmin = mapUserToAdmin(updatedUser);
@@ -395,18 +399,21 @@ const RoleManagementPage = () => {
                     setOverlay({ visible: true, status: 'saving', message: 'Resetting to role permissions...' });
                     try {
                       await userService.resetPermissions(selectedAdmin.id);
-                      // Reload the admin list to get updated data
-                      const res = await userService.getAll();
-                      const adminsData = res?.data?.admins || [];
-                      const filteredAdmins = adminsData.filter(admin => 
-                        admin.role?.name !== 'super_admin' && 
-                        admin.role?.display_name !== 'Super Admin'
-                      );
-                      const items = filteredAdmins.map(mapUserToAdmin);
-                      setAdmins(items);
-                      const updatedAdmin = items.find(a => a.id === selectedAdmin.id) || items[0];
+                      
+                      // Fetch the updated user data
+                      const updatedUserRes = await userService.getById(selectedAdmin.id);
+                      const updatedUser = updatedUserRes.data;
+                      
+                      // Create a fresh mapping for the updated admin
+                      const updatedAdmin = mapUserToAdmin(updatedUser);
+                      
+                      // Update the specific admin in the list
+                      setAdmins(admins.map(a => a.id === updatedAdmin.id ? updatedAdmin : a));
+                      
+                      // Update selected admin and temp permissions
                       setSelectedAdmin(updatedAdmin);
                       setTempPermissions(initializeTempPermissions(updatedAdmin));
+                      
                       setOverlay({ visible: true, status: 'success', message: 'Reset to role permissions' });
                       setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 1500);
                     } catch (error) {

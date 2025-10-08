@@ -11,7 +11,7 @@ use App\Http\Controllers\Api\ReportController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
+});
 
 // Employee routes
 Route::get('/employees', [EmployeeController::class, 'index']);
