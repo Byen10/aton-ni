@@ -15,7 +15,37 @@ const getBadgeColor = (name) => {
 };
 
 const EmployeePage = () => {
-  const [isAddOpen, setIsAddOpen] = React.useState(false);
+  const [isAddOpen, setIsAddOp                      <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Client*</label>
+                    <select 
+                      value={form.client} 
+                      onChange={(e) => setForm({...form, client: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={8}
+                    >
+                      <option value="">Select Client</option>
+                      {clientOptions.map(client => (
+                        <option key={client} value={client}>{client}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Department*</label>
+                    <select 
+                      value={form.department} 
+                      onChange={(e) => setForm({...form, department: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={9}
+                    >
+                      <option value="">Select Department</option>
+                      {departmentOptions.map(department => (
+                        <option key={department} value={department}>{department}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Full Width Address Field */}ate(false);
   const [viewing, setViewing] = React.useState(null);
   const [editing, setEditing] = React.useState(null);
   const [deleting, setDeleting] = React.useState(null);
@@ -27,8 +57,35 @@ const EmployeePage = () => {
     password: '',
     contact: '',
     address: '',
-    employeeType: 'Regular'
+    employeeType: 'Regular',
+    client: '',
+    position: '',
+    department: ''
   });
+  
+  const clientOptions = [
+    'Client A',
+    'Client B', 
+    'Client C',
+    'Client D'
+  ];
+
+  const positionOptions = [
+    'Developer',
+    'Designer',
+    'Project Manager',
+    'QA Engineer',
+    'Business Analyst'
+  ];
+
+  const departmentOptions = [
+    'IT',
+    'HR',
+    'Finance',
+    'Operations',
+    'Marketing',
+    'Sales'
+  ];
   const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
@@ -41,6 +98,8 @@ const EmployeePage = () => {
             name: `${e.first_name} ${e.last_name}`,
             employeeType: e.employee_type || 'Regular',
             department: e.department || '',
+            client: e.client || '',
+            position: e.position || '',
             badge: (e.first_name?.[0] || '').toUpperCase(),
             color: getBadgeColor(e.first_name)
           })));
@@ -56,7 +115,10 @@ const EmployeePage = () => {
     password: '',
     contact: '',
     address: '',
-    employeeType: 'Regular'
+    employeeType: 'Regular',
+    client: '',
+    position: '',
+    department: ''
   });
   const closeModal = () => setIsAddOpen(false);
 
@@ -94,6 +156,9 @@ const EmployeePage = () => {
         phone: form.contact,
         address: form.address,
         employee_type: form.employeeType,
+        client: form.client,
+        position: form.position,
+        department: form.department,
         status: 'active',
       })
     })
@@ -124,7 +189,10 @@ const EmployeePage = () => {
       password: '',
       contact: emp.phone || '',
       address: emp.address || '',
-      employeeType: emp.employeeType || 'Regular'
+      employeeType: emp.employeeType || 'Regular',
+      client: emp.client || '',
+      position: emp.position || '',
+      department: emp.department || ''
     });
     setIsAddOpen(false);
   };
@@ -144,6 +212,9 @@ const EmployeePage = () => {
         phone: form.contact,
         address: form.address,
         employee_type: form.employeeType,
+        client: form.client,
+        position: form.position,
+        department: form.department,
         status: 'active'
       })
     })
@@ -232,9 +303,11 @@ const EmployeePage = () => {
             {/* Table Header */}
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-600">
-                <div className="col-span-4">Name</div>
-                <div className="col-span-3">Employee Type</div>
-                <div className="col-span-3">Department</div>
+                <div className="col-span-3">Name</div>
+                <div className="col-span-2">Employee Type</div>
+                <div className="col-span-2">Client</div>
+                <div className="col-span-2">Position</div>
+                <div className="col-span-1">Department</div>
                 <div className="col-span-2 text-center">Actions</div>
               </div>
             </div>
@@ -247,14 +320,16 @@ const EmployeePage = () => {
                 filteredEmployees.map((e) => (
                   <div key={e.id} className="px-6 py-4 hover:bg-blue-50 transition-colors">
                     <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-4 flex items-center space-x-3">
+                      <div className="col-span-2 flex items-center space-x-3">
                         <div className={`w-8 h-8 ${e.color} rounded-full text-white text-sm flex items-center justify-center font-medium`}>
                           {e.badge}
                         </div>
                         <span className="text-gray-900 font-medium">{e.name}</span>
                       </div>
-                      <div className="col-span-3 text-gray-600">{e.employeeType}</div>
-                      <div className="col-span-3 text-gray-600">{e.department}</div>
+                      <div className="col-span-2 text-gray-600">{e.employeeType}</div>
+                      <div className="col-span-2 text-gray-600">{e.client}</div>
+                      <div className="col-span-2 text-gray-600">{e.position}</div>
+                      <div className="col-span-2 text-gray-600">{e.department}</div>
                       <div className="col-span-2 flex items-center justify-center space-x-3">
                         <button
                           onClick={() => openView(e)}
@@ -342,6 +417,22 @@ const EmployeePage = () => {
                     <span className="text-gray-900">{viewing.employeeType}</span>
                   </div>
                 </div>
+
+                {/* Client */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Client</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.client}</span>
+                  </div>
+                </div>
+
+                {/* Position */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Position</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.position}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Address */}
@@ -398,6 +489,20 @@ const EmployeePage = () => {
                       tabIndex={5}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Position*</label>
+                    <select 
+                      value={form.position} 
+                      onChange={(e) => setForm({...form, position: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={7}
+                    >
+                      <option value="">Select Position</option>
+                      {positionOptions.map(position => (
+                        <option key={position} value={position}>{position}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 
                 {/* Right Column */}
@@ -434,6 +539,20 @@ const EmployeePage = () => {
                       <option value="Regular">Regular</option>
                       <option value="Contractor">Contractor</option>
                       <option value="Temporary">Temporary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Client*</label>
+                    <select 
+                      value={form.client} 
+                      onChange={(e) => setForm({...form, client: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={8}
+                    >
+                      <option value="">Select Client</option>
+                      {clientOptions.map(client => (
+                        <option key={client} value={client}>{client}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -502,6 +621,20 @@ const EmployeePage = () => {
                       tabIndex={5}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Position*</label>
+                    <select 
+                      value={form.position} 
+                      onChange={(e) => setForm({...form, position: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={7}
+                    >
+                      <option value="">Select Position</option>
+                      {positionOptions.map(position => (
+                        <option key={position} value={position}>{position}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 
                 {/* Right Column */}
@@ -538,6 +671,20 @@ const EmployeePage = () => {
                       <option value="Regular">Regular</option>
                       <option value="Contractor">Contractor</option>
                       <option value="Temporary">Temporary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Client*</label>
+                    <select 
+                      value={form.client} 
+                      onChange={(e) => setForm({...form, client: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={8}
+                    >
+                      <option value="">Select Client</option>
+                      {clientOptions.map(client => (
+                        <option key={client} value={client}>{client}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
