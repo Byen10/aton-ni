@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('employees', function (Blueprint $table) {
             // Add employee_type enum
-            $table->enum('employee_type', ['Regular', 'Contractor', 'Temporary'])
-                  ->default('Regular')
+            $table->enum('employee_type', ['End of Service', 'Independent Contractor', 'Probationary', 'Regular', 'Resigned', 'Separated', 'Terminated'])
+                  ->default('End of Service')
                   ->after('email');
 
             // Remove old position column if it exists

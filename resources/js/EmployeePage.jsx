@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HomeSidebar from './HomeSidebar';
 import GlobalHeader from './components/GlobalHeader';
-import { Eye, Pencil, Trash2, Search } from 'lucide-react';
+import { Search, Eye, Edit, Trash2, Plus, Bell, Settings, ArrowRight, X } from 'lucide-react';
 
 const getBadgeColor = (name) => {
   const colors = {
@@ -27,57 +27,11 @@ const EmployeePage = () => {
     password: '',
     contact: '',
     address: '',
-    employeeType: 'Regular',
-    client: '',
-    position: '',
-    department: ''
+    employeeType: 'End of Service'
   });
-  
-  const clientOptions = [
-    'Client A',
-    'Client B', 
-    'Client C',
-    'Client D'
-  ];
-
-  const positionOptions = [
-    'Developer',
-    'Designer',
-    'Project Manager',
-    'QA Engineer',
-    'Business Analyst'
-  ];
-
-  const departmentOptions = [
-    'IT Department',
-    'Human Resources',
-    'Finance',
-    'Marketing',
-    'Operations',
-    'Sales',
-    'Research & Development',
-    'Customer Service'
-  ];
   const [employees, setEmployees] = useState([]);
 
-  useEffect(() => {
-    fetch('/api/employees')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.data)) {
-          setEmployees(data.data.map(e => ({
-            id: e.id,
-            name: `${e.first_name} ${e.last_name}`,
-            employeeType: e.employee_type || 'Regular',
-            department: e.department || '',
-            client: e.client || '',
-            position: e.position || '',
-            badge: (e.first_name?.[0] || '').toUpperCase(),
-            color: getBadgeColor(e.first_name)
-          })));
-        }
-      });
-  }, []);
+  useEffect(() => {/* Lines 35-49 omitted */}, []);
 
   const update = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   const resetAll = () => setForm({
@@ -87,138 +41,28 @@ const EmployeePage = () => {
     password: '',
     contact: '',
     address: '',
-    employeeType: 'Regular',
-    client: '',
-    position: '',
-    department: ''
+    employeeType: 'End of Service'
   });
   const closeModal = () => setIsAddOpen(false);
 
-  const refreshEmployees = () => {
-    fetch('/api/employees')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.data)) {
-          setEmployees(data.data.map(e => ({
-            id: e.id,
-            name: `${e.first_name} ${e.last_name}`,
-            employeeType: e.employee_type || 'Regular',
-            department: e.department || '',
-            email: e.email,
-            phone: e.phone || '',
-            badge: (e.first_name?.[0] || '').toUpperCase(),
-            color: getBadgeColor(e.first_name)
-          })));
-        }
-      });
-  };
+  const refreshEmployees = () => {/* Lines 64-80 omitted */};
 
-  const saveEmployee = () => {
-    fetch('/api/employees', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        first_name: form.firstName,
-        last_name: form.lastName,
-        email: form.email,
-        password: form.password,
-        phone: form.contact,
-        address: form.address,
-        employee_type: form.employeeType,
-        client: form.client,
-        position: form.position,
-        department: form.department,
-        status: 'active',
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          closeModal();
-          resetAll();
-          refreshEmployees();
-        } else {
-          alert(data.message || 'Failed to save employee');
-        }
-      })
-      .catch(() => alert('Failed to save employee'));
-  };
+  const saveEmployee = () => {/* Lines 83-111 omitted */};
 
   const openView = (emp) => setViewing(emp);
   const closeView = () => setViewing(null);
 
   // Populate form with employee data for editing
-  const openEdit = (emp) => {
-    setEditing(emp);
-    const [firstName, ...lastNameParts] = emp.name.split(' ');
-    setForm({
-      firstName: firstName || '',
-      lastName: lastNameParts.join(' ') || '',
-      email: emp.email || '',
-      password: '',
-      contact: emp.phone || '',
-      address: emp.address || '',
-      employeeType: emp.employeeType || 'Regular',
-      client: emp.client || '',
-      position: emp.position || '',
-      department: emp.department || ''
-    });
-    setIsAddOpen(false);
-  };
+  const openEdit = (emp) => {/* Lines 118-130 omitted */};
   
-  const closeEdit = () => { setEditing(null); resetAll(); };
+  const closeEdit = () => {/* Line 132 omitted */};
 
-  const updateEmployee = () => {
-    if (!editing) return;
-    fetch(`/api/employees/${editing.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        first_name: form.firstName,
-        last_name: form.lastName,
-        email: form.email,
-        password: form.password || undefined,
-        phone: form.contact,
-        address: form.address,
-        employee_type: form.employeeType,
-        client: form.client,
-        position: form.position,
-        department: form.department,
-        status: 'active'
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          closeEdit();
-          refreshEmployees();
-        } else {
-          alert(data.message || 'Failed to update employee');
-        }
-      })
-      .catch(() => alert('Failed to update employee'));
-  };
+  const updateEmployee = () => {/* Lines 135-160 omitted */};
 
   const openDelete = (emp) => setDeleting(emp);
   const closeDelete = () => setDeleting(null);
 
-  const confirmDelete = () => {
-    if (!deleting) return;
-    fetch(`/api/employees/${deleting.id}`, { method: 'DELETE', headers: { 'Accept': 'application/json' } })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          closeDelete();
-          refreshEmployees();
-        } else {
-          alert(data.message || 'Failed to delete employee');
-        }
-      })
-      .catch(() => alert('Failed to delete employee'));
-  };
+  const confirmDelete = () => {/* Lines 166-178 omitted */};
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -275,11 +119,9 @@ const EmployeePage = () => {
             {/* Table Header */}
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-600">
-                <div className="col-span-3">Name</div>
-                <div className="col-span-2">Employee Type</div>
-                <div className="col-span-2">Client</div>
-                <div className="col-span-2">Position</div>
-                <div className="col-span-1">Department</div>
+                <div className="col-span-4">Name</div>
+                <div className="col-span-3">Employee Type</div>
+                <div className="col-span-3">Department</div>
                 <div className="col-span-2 text-center">Actions</div>
               </div>
             </div>
@@ -292,16 +134,14 @@ const EmployeePage = () => {
                 filteredEmployees.map((e) => (
                   <div key={e.id} className="px-6 py-4 hover:bg-blue-50 transition-colors">
                     <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-3 flex items-center space-x-3">
+                      <div className="col-span-4 flex items-center space-x-3">
                         <div className={`w-8 h-8 ${e.color} rounded-full text-white text-sm flex items-center justify-center font-medium`}>
                           {e.badge}
                         </div>
                         <span className="text-gray-900 font-medium">{e.name}</span>
                       </div>
-                      <div className="col-span-2 text-gray-600">{e.employeeType}</div>
-                      <div className="col-span-2 text-gray-600">{e.client}</div>
-                      <div className="col-span-2 text-gray-600">{e.position}</div>
-                      <div className="col-span-1 text-gray-600">{e.department}</div>
+                      <div className="col-span-3 text-gray-600">{e.employeeType}</div>
+                      <div className="col-span-3 text-gray-600">{e.department}</div>
                       <div className="col-span-2 flex items-center justify-center space-x-3">
                         <button
                           onClick={() => openView(e)}
@@ -389,30 +229,6 @@ const EmployeePage = () => {
                     <span className="text-gray-900">{viewing.employeeType}</span>
                   </div>
                 </div>
-
-                {/* Client */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Client</label>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.client}</span>
-                  </div>
-                </div>
-
-                {/* Position */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Position</label>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.position}</span>
-                  </div>
-                </div>
-
-                {/* Department */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">Department</label>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.department}</span>
-                  </div>
-                </div>
               </div>
 
               {/* Address */}
@@ -469,20 +285,6 @@ const EmployeePage = () => {
                       tabIndex={5}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 font-medium mb-2">Position*</label>
-                    <select 
-                      value={form.position} 
-                      onChange={(e) => setForm({...form, position: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={7}
-                    >
-                      <option value="">Select Position</option>
-                      {positionOptions.map(position => (
-                        <option key={position} value={position}>{position}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
                 
                 {/* Right Column */}
@@ -511,42 +313,20 @@ const EmployeePage = () => {
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">Employee Type*</label>
                     <select 
-                      value={form.employeeType || 'Regular'} 
+                      value={form.employeeType} 
                       onChange={(e) => setForm({...form, employeeType: e.target.value})} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       tabIndex={6}
                     >
+                      <option value="End of Service">End of Service</option>
+                      <option value="Independent Contractor">Independent Contractor</option>
+                      <option value="Probationary">Probationary</option>
                       <option value="Regular">Regular</option>
-                      <option value="Contractor">Contractor</option>
-                      <option value="Temporary">Temporary</option>
+                      <option value="Resigned">Resigned</option>
+                      <option value="Separated">Separated</option>
+                      <option value="Terminated">Terminated</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 font-medium mb-2">Client*</label>
-                    <select 
-                      value={form.client} 
-                      onChange={(e) => setForm({...form, client: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={8}
-                    >
-                      <option value="">Select Client</option>
-                      {clientOptions.map(client => (
-                        <option key={client} value={client}>{client}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Department Field */}
-                <div className="col-span-2">
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Department*</label>
-                  <input 
-                    value={form.department || ''} 
-                    onChange={(e) => setForm({...form, department: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter department"
-                    tabIndex={9}
-                  />
                 </div>
 
                 {/* Full Width Address Field */}
@@ -558,7 +338,7 @@ const EmployeePage = () => {
                     className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                     placeholder="Enter complete address"
                     rows="3"
-                    tabIndex={10}
+                    tabIndex={7}
                   />
                 </div>
               </div>
@@ -613,20 +393,6 @@ const EmployeePage = () => {
                       tabIndex={5}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 font-medium mb-2">Position*</label>
-                    <select 
-                      value={form.position} 
-                      onChange={(e) => setForm({...form, position: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={7}
-                    >
-                      <option value="">Select Position</option>
-                      {positionOptions.map(position => (
-                        <option key={position} value={position}>{position}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
                 
                 {/* Right Column */}
@@ -655,42 +421,20 @@ const EmployeePage = () => {
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">Employee Type*</label>
                     <select 
-                      value={form.employeeType || 'Regular'} 
+                      value={form.employeeType} 
                       onChange={(e) => setForm({...form, employeeType: e.target.value})} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       tabIndex={6}
                     >
+                      <option value="End of Service">End of Service</option>
+                      <option value="Independent Contractor">Independent Contractor</option>
+                      <option value="Probationary">Probationary</option>
                       <option value="Regular">Regular</option>
-                      <option value="Contractor">Contractor</option>
-                      <option value="Temporary">Temporary</option>
+                      <option value="Resigned">Resigned</option>
+                      <option value="Separated">Separated</option>
+                      <option value="Terminated">Terminated</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 font-medium mb-2">Client*</label>
-                    <select 
-                      value={form.client} 
-                      onChange={(e) => setForm({...form, client: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={8}
-                    >
-                      <option value="">Select Client</option>
-                      {clientOptions.map(client => (
-                        <option key={client} value={client}>{client}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Department Field */}
-                <div className="col-span-2">
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Department*</label>
-                  <input 
-                    value={form.department || ''} 
-                    onChange={(e) => setForm({...form, department: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter department"
-                    tabIndex={9}
-                  />
                 </div>
 
                 {/* Full Width Address Field */}
@@ -702,7 +446,7 @@ const EmployeePage = () => {
                     className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                     placeholder="Enter complete address"
                     rows="3"
-                    tabIndex={10}
+                    tabIndex={7}
                   />
                 </div>
               </div>
