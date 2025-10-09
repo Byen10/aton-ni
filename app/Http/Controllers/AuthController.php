@@ -116,7 +116,10 @@ class AuthController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
+            // Eager-load relations to expose permissions correctly
+            $user->load(['role', 'userPermissions']);
             $role = $user->role;
+            $userPerm = $user->userPermissions;
             
             return response()->json([
                 'authenticated' => true,
@@ -126,7 +129,13 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'role' => $role ? $role->name : null,
                     'role_display' => $role ? $role->display_name : null,
+                    // Keep role permissions field for backward-compat
                     'permissions' => $role ? $role->permissions : null,
+                    // NEW: include user custom permissions so the frontend can prefer them
+                    'user_permissions' => $userPerm ? [
+                        'use_custom_permissions' => (bool) $userPerm->use_custom_permissions,
+                        'permissions' => $userPerm->permissions ?? [],
+                    ] : null,
                     'is_active' => $user->is_active
                 ]
             ]);
@@ -139,7 +148,9 @@ class AuthController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
+            $user->load(['role', 'userPermissions']);
             $role = $user->role;
+            $userPerm = $user->userPermissions;
             
             return response()->json([
                 'success' => true,
@@ -151,6 +162,10 @@ class AuthController extends Controller
                     'role' => $role ? $role->name : null,
                     'role_display' => $role ? $role->display_name : null,
                     'permissions' => $role ? $role->permissions : null,
+                    'user_permissions' => $userPerm ? [
+                        'use_custom_permissions' => (bool) $userPerm->use_custom_permissions,
+                        'permissions' => $userPerm->permissions ?? [],
+                    ] : null,
                     'is_active' => $user->is_active
                 ],
                 'redirect' => route('dashboard')

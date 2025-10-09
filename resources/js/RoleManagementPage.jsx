@@ -232,6 +232,9 @@ const RoleManagementPage = () => {
         .filter(item => tempPermissions[item.key] === true)
         .map(item => item.api || item.key);
       
+      console.log('Saving permissions:', permissions); // DEBUG
+      console.log('Temp permissions state:', tempPermissions); // DEBUG
+      
       // Use user-specific permissions instead of role permissions
       const res = await userService.setPermissions(selectedAdmin.id, permissions, true);
       const updatedUser = res.data;
@@ -246,7 +249,7 @@ const RoleManagementPage = () => {
       setSelectedAdmin(updatedAdmin);
       setTempPermissions(initializeTempPermissions(updatedAdmin));
 
-      // If we just changed the permissions of the CURRENT logged-in user, refresh local user so sidebar updates
+      // ✅ CRITICAL FIX: If we just changed the permissions of the CURRENT logged-in user, refresh local user so sidebar updates
       try {
         const current = apiUtils.getCurrentUser();
         if (current && current.id === selectedAdmin.id) {
@@ -256,10 +259,18 @@ const RoleManagementPage = () => {
             if (data?.authenticated && data.user) {
               const normalized = {
                 ...data.user,
-                role: { name: data.user.role, display_name: data.user.role_display, permissions: data.user.permissions },
+                role: { 
+                  name: data.user.role, 
+                  display_name: data.user.role_display, 
+                  permissions: data.user.permissions 
+                },
                 user_permissions: data.user.user_permissions
               };
               localStorage.setItem('user', JSON.stringify(normalized));
+              
+              // ✅ CRITICAL: Dispatch custom event to update sidebar immediately
+              window.dispatchEvent(new Event('userUpdated'));
+              console.log('[RoleManagement] Dispatched userUpdated event for sidebar refresh');
             }
           }
         }
@@ -272,6 +283,7 @@ const RoleManagementPage = () => {
       setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 1500);
     } catch (error) {
       console.error('Error saving permissions:', error);
+      console.error('Error details:', error.response?.data); // DEBUG
       setOverlay({ visible: true, status: 'error', message: 'Failed to save changes' });
       setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 3000);
     }
@@ -407,6 +419,30 @@ const RoleManagementPage = () => {
                       const updatedAdmin = items.find(a => a.id === selectedAdmin.id) || items[0];
                       setSelectedAdmin(updatedAdmin);
                       setTempPermissions(initializeTempPermissions(updatedAdmin));
+                      
+                      // ✅ CRITICAL: Also dispatch event when resetting permissions
+                      const current = apiUtils.getCurrentUser();
+                      if (current && current.id === selectedAdmin.id) {
+                        const resAuth = await fetch('/check-auth', { credentials: 'include' });
+                        if (resAuth.ok) {
+                          const data = await resAuth.json();
+                          if (data?.authenticated && data.user) {
+                            const normalized = {
+                              ...data.user,
+                              role: { 
+                                name: data.user.role, 
+                                display_name: data.user.role_display, 
+                                permissions: data.user.permissions 
+                              },
+                              user_permissions: data.user.user_permissions
+                            };
+                            localStorage.setItem('user', JSON.stringify(normalized));
+                            window.dispatchEvent(new Event('userUpdated'));
+                            console.log('[RoleManagement] Dispatched userUpdated event after reset');
+                          }
+                        }
+                      }
+                      
                       setOverlay({ visible: true, status: 'success', message: 'Reset to role permissions' });
                       setTimeout(() => setOverlay({ visible: false, status: 'idle', message: '' }), 1500);
                     } catch (error) {
