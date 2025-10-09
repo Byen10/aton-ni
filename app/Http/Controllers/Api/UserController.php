@@ -265,6 +265,7 @@ class UserController extends Controller
 
     /**
      * Set custom permissions for a user
+     * ✅ FIXED: Now returns the complete user object
      */
     public function setPermissions(Request $request, string $id): JsonResponse
     {
@@ -304,13 +305,10 @@ class UserController extends Controller
                 $user
             );
 
+            // ✅ CRITICAL FIX: Return the complete user object instead of just permissions
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'permissions' => $user->getEffectivePermissions(),
-                    'is_custom' => $useCustom,
-                    'role_permissions' => $user->role ? $user->role->permissions : []
-                ],
+                'data' => $user, // Now returns the full user object with all relationships
                 'message' => 'User permissions updated successfully'
             ]);
         } catch (\Exception $e) {
@@ -323,6 +321,7 @@ class UserController extends Controller
 
     /**
      * Reset user permissions to role defaults
+     * ✅ FIXED: Now returns the complete user object
      */
     public function resetPermissions(string $id): JsonResponse
     {
@@ -339,13 +338,10 @@ class UserController extends Controller
                 $user
             );
 
+            // ✅ CRITICAL FIX: Return the complete user object instead of just permissions
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'permissions' => $user->getEffectivePermissions(),
-                    'is_custom' => false,
-                    'role_permissions' => $user->role ? $user->role->permissions : []
-                ],
+                'data' => $user, // Now returns the full user object with all relationships
                 'message' => 'User permissions reset to role defaults'
             ]);
         } catch (\Exception $e) {
