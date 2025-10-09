@@ -80,6 +80,9 @@ class AuthController extends Controller
         // Get user role information
         $role = $user->role;
         
+        // Determine redirect route based on role
+        $redirectRoute = $this->getRedirectRouteForRole($role);
+        
         if ($request->expectsJson()) {
             // For JSON requests, we need to ensure the session cookie is properly set
             // by using a different approach - return a redirect response that sets the cookie
@@ -97,10 +100,31 @@ class AuthController extends Controller
             ]]);
             
             // Return a redirect response that will set the session cookie
-            return redirect()->route('dashboard')->with('login_success', true);
+            return redirect()->route($redirectRoute)->with('login_success', true);
         }
 
-        return redirect()->route('dashboard');
+        return redirect()->route($redirectRoute);
+    }
+
+    /**
+     * Determine the redirect route based on user role
+     */
+    private function getRedirectRouteForRole($role)
+    {
+        if (!$role) {
+            return 'dashboard'; // Default fallback
+        }
+
+        // Check role name
+        switch ($role->name) {
+            case 'employee':
+                return 'employee.dashboard';
+            case 'super_admin':
+            case 'admin':
+                return 'dashboard';
+            default:
+                return 'dashboard';
+        }
     }
 
     public function logout(Request $request)
