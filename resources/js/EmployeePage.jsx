@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HomeSidebar from './HomeSidebar';
 import GlobalHeader from './components/GlobalHeader';
-import { Search, Eye, Edit, Trash2, Plus, Bell, Settings, ArrowRight, X } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search } from 'lucide-react';
 
 const getBadgeColor = (name) => {
   const colors = {
@@ -27,11 +27,36 @@ const EmployeePage = () => {
     password: '',
     contact: '',
     address: '',
-    employeeType: 'End of Service'
+    employeeType: 'Regular',
+    client: '',
+    position: '',
+    department: ''
   });
   const [employees, setEmployees] = useState([]);
 
-  useEffect(() => {/* Lines 35-49 omitted */}, []);
+  useEffect(() => {
+    fetch('/api/employees')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setEmployees(data.data.map(e => ({
+            id: e.id,
+            name: `${e.first_name} ${e.last_name}`.trim(),
+            firstName: e.first_name || '',
+            lastName: e.last_name || '',
+            position: e.position || '',
+            client: e.client || '',
+            department: e.department || '',
+            employeeType: e.employee_type || 'Regular',
+            email: e.email || '',
+            phone: e.phone || '',
+            address: e.address || '',
+            badge: (e.first_name?.[0] || '').toUpperCase(),
+            color: getBadgeColor(e.first_name)
+          })));
+        }
+      });
+  }, []);
 
   const update = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   const resetAll = () => setForm({
@@ -41,33 +66,148 @@ const EmployeePage = () => {
     password: '',
     contact: '',
     address: '',
-    employeeType: 'End of Service'
+    employeeType: 'Regular',
+    client: '',
+    position: '',
+    department: ''
   });
   const closeModal = () => setIsAddOpen(false);
 
-  const refreshEmployees = () => {/* Lines 64-80 omitted */};
+  const refreshEmployees = () => {
+    fetch('/api/employees')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setEmployees(data.data.map(e => ({
+            id: e.id,
+            name: `${e.first_name} ${e.last_name}`.trim(),
+            firstName: e.first_name || '',
+            lastName: e.last_name || '',
+            position: e.position || '',
+            client: e.client || '',
+            department: e.department || '',
+            employeeType: e.employee_type || 'Regular',
+            email: e.email || '',
+            phone: e.phone || '',
+            address: e.address || '',
+            badge: (e.first_name?.[0] || '').toUpperCase(),
+            color: getBadgeColor(e.first_name)
+          })));
+        }
+      });
+  };
 
-  const saveEmployee = () => {/* Lines 83-111 omitted */};
+  const saveEmployee = () => {
+    fetch('/api/employees', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        first_name: form.firstName,
+        last_name: form.lastName,
+        email: form.email,
+        password: form.password,
+        phone: form.contact,
+        address: form.address,
+        employee_type: form.employeeType,
+        client: form.client,
+        position: form.position,
+        department: form.department,
+        status: 'active',
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          closeModal();
+          resetAll();
+          refreshEmployees();
+        } else {
+          alert(data.message || 'Failed to save employee');
+        }
+      })
+      .catch(() => alert('Failed to save employee'));
+  };
 
   const openView = (emp) => setViewing(emp);
   const closeView = () => setViewing(null);
 
-  // Populate form with employee data for editing
-  const openEdit = (emp) => {/* Lines 118-130 omitted */};
+  const openEdit = (emp) => {
+    setEditing(emp);
+    const [firstName, ...lastNameParts] = (emp.name || '').split(' ');
+    setForm({
+      firstName: firstName || emp.firstName || '',
+      lastName: lastNameParts.join(' ') || emp.lastName || '',
+      email: emp.email || '',
+      password: '',
+      contact: emp.phone || '',
+      address: emp.address || '',
+      employeeType: emp.employeeType || 'Regular',
+      client: emp.client || '',
+      position: emp.position || '',
+      department: emp.department || ''
+    });
+    setIsAddOpen(false);
+  };
   
-  const closeEdit = () => {/* Line 132 omitted */};
+  const closeEdit = () => { setEditing(null); resetAll(); };
 
-  const updateEmployee = () => {/* Lines 135-160 omitted */};
+  const updateEmployee = () => {
+    if (!editing) return;
+    fetch(`/api/employees/${editing.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        first_name: form.firstName,
+        last_name: form.lastName,
+        email: form.email,
+        password: form.password || undefined,
+        phone: form.contact,
+        address: form.address,
+        employee_type: form.employeeType,
+        client: form.client,
+        position: form.position,
+        department: form.department,
+        status: 'active'
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          closeEdit();
+          refreshEmployees();
+        } else {
+          alert(data.message || 'Failed to update employee');
+        }
+      })
+      .catch(() => alert('Failed to update employee'));
+  };
 
   const openDelete = (emp) => setDeleting(emp);
   const closeDelete = () => setDeleting(null);
 
-  const confirmDelete = () => {/* Lines 166-178 omitted */};
+  const confirmDelete = () => {
+    if (!deleting) return;
+    fetch(`/api/employees/${deleting.id}`, { method: 'DELETE', headers: { 'Accept': 'application/json' } })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          closeDelete();
+          refreshEmployees();
+        } else {
+          alert(data.message || 'Failed to delete employee');
+        }
+      })
+      .catch(() => alert('Failed to delete employee'));
+  };
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.employeeType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchTerm.toLowerCase())
+    (emp.position || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (emp.client || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -75,14 +215,12 @@ const EmployeePage = () => {
       <HomeSidebar />
       
       <div className="flex-1 flex flex-col">
-        {/* Global Header with Profile */}
         <GlobalHeader 
           title="Employees" 
           hideSearch={true}
           showTitle={true}
         />
 
-        {/* Search Bar and Add Button */}
         <div className="bg-white px-8 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -99,7 +237,6 @@ const EmployeePage = () => {
               <button className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg">
                 Filter
               </button>
-              
             </div>
             <button 
               onClick={() => setIsAddOpen(true)} 
@@ -110,23 +247,21 @@ const EmployeePage = () => {
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 bg-white px-8 py-6 overflow-y-auto">
           <h2 className="text-xl font-semibold text-gray-800 mb-6">Employees</h2>
           
-          {/* Table */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            {/* Table Header */}
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-600">
-                <div className="col-span-4">Name</div>
-                <div className="col-span-3">Employee Type</div>
-                <div className="col-span-3">Department</div>
+                <div className="col-span-3">Name</div>
+                <div className="col-span-2">Client</div>
+                <div className="col-span-2">Position</div>
+                <div className="col-span-2">Employee Type</div>
+                <div className="col-span-1">Department</div>
                 <div className="col-span-2 text-center">Actions</div>
               </div>
             </div>
 
-            {/* Table Body */}
             <div className="divide-y divide-gray-200">
               {filteredEmployees.length === 0 ? (
                 <div className="py-8 text-center text-gray-500">No employees found.</div>
@@ -134,14 +269,16 @@ const EmployeePage = () => {
                 filteredEmployees.map((e) => (
                   <div key={e.id} className="px-6 py-4 hover:bg-blue-50 transition-colors">
                     <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-4 flex items-center space-x-3">
+                      <div className="col-span-3 flex items-center space-x-3">
                         <div className={`w-8 h-8 ${e.color} rounded-full text-white text-sm flex items-center justify-center font-medium`}>
                           {e.badge}
                         </div>
                         <span className="text-gray-900 font-medium">{e.name}</span>
                       </div>
-                      <div className="col-span-3 text-gray-600">{e.employeeType}</div>
-                      <div className="col-span-3 text-gray-600">{e.department}</div>
+                      <div className="col-span-2 text-gray-600">{e.client}</div>
+                      <div className="col-span-2 text-gray-600">{e.position}</div>
+                      <div className="col-span-2 text-gray-600">{e.employeeType}</div>
+                      <div className="col-span-1 text-gray-600">{e.department}</div>
                       <div className="col-span-2 flex items-center justify-center space-x-3">
                         <button
                           onClick={() => openView(e)}
@@ -170,7 +307,6 @@ const EmployeePage = () => {
           </div>
         </div>
 
-        {/* View Modal */}
         {viewing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/20" onClick={closeView} />
@@ -179,7 +315,6 @@ const EmployeePage = () => {
               <h3 className="text-2xl font-semibold text-blue-600 mb-8">Employee Details</h3>
               
               <div className="grid grid-cols-2 gap-6 mb-6">
-                {/* First Name */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">First Name</label>
                   <div className="bg-gray-100 rounded-lg p-3">
@@ -187,15 +322,13 @@ const EmployeePage = () => {
                   </div>
                 </div>
 
-                {/* Last Name */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">Last Name</label>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.lastName}</span>
+                  <div className="bg-gray-100 rounded-lg p-3 text-gray-900">
+                    {viewing.lastName}
                   </div>
                 </div>
 
-                {/* Email */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">Email</label>
                   <div className="bg-gray-100 rounded-lg p-3">
@@ -203,46 +336,63 @@ const EmployeePage = () => {
                   </div>
                 </div>
 
-                {/* Password */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">Password</label>
-                  <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-between">
-                    <span className="text-gray-900">••••••••••</span>
+                  <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-end">
                     <button className="text-gray-400 hover:text-gray-600">
                       <Eye className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Contact Number */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">Contact Number</label>
                   <div className="bg-gray-100 rounded-lg p-3">
-                    <span className="text-gray-900">{viewing.contact}</span>
+                    <span className="text-gray-900">{viewing.phone}</span>
                   </div>
                 </div>
 
-                {/* Employee Type */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Address</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.address}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Client</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.client}</span>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-2">Employee Type</label>
                   <div className="bg-gray-100 rounded-lg p-3">
                     <span className="text-gray-900">{viewing.employeeType}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Address */}
-              <div className="mb-6">
-                <label className="block text-xs font-medium text-gray-500 mb-2">Address</label>
-                <div className="bg-gray-100 rounded-lg p-3">
-                  <span className="text-gray-900">{viewing.address}</span>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Department</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.department}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Position</label>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <span className="text-gray-900">{viewing.position}</span>
+                  </div>
                 </div>
               </div>
+
+              
             </div>
           </div>
         )}
 
-        {/* Add Modal */}
         {isAddOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/20" onClick={closeModal} />
@@ -251,16 +401,15 @@ const EmployeePage = () => {
               <h3 className="text-xl font-semibold text-blue-500 text-center mb-8">Add employee</h3>
 
               <div className="grid grid-cols-2 gap-6">
-                {/* Left Column */}
+                {/* LEFT SIDE */}
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">First Name*</label>
                     <input 
-                      value={form.firstName || ''} 
+                      value={form.firstName} 
                       onChange={(e) => setForm({...form, firstName: e.target.value})} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="Enter first name"
-                      tabIndex={1}
                     />
                   </div>
                   <div>
@@ -271,7 +420,6 @@ const EmployeePage = () => {
                       onChange={update('email')} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="Enter email address"
-                      tabIndex={3}
                     />
                   </div>
                   <div>
@@ -282,64 +430,93 @@ const EmployeePage = () => {
                       onChange={update('contact')} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="Enter phone number"
-                      tabIndex={5}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Client</label>
+                    <select
+                      value={form.client}
+                      onChange={(e) => setForm({...form, client: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select client</option>
+                      <option value="Client A">Client A</option>
+                      <option value="Client B">Client B</option>
+                      <option value="Client C">Client C</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Department</label>
+                    <select
+                      value={form.department}
+                      onChange={(e) => setForm({...form, department: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select department</option>
+                      <option value="IT Department">IT Department</option>
+                      <option value="HR Department">HR Department</option>
+                      <option value="Sales Department">Sales Department</option>
+                      <option value="Marketing Department">Marketing Department</option>
+                      <option value="Finance Department">Finance Department</option>
+                    </select>
+                  </div>
                 </div>
-                
-                {/* Right Column */}
+
+                {/* RIGHT SIDE */}
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">Last Name*</label>
                     <input 
-                      value={form.lastName || ''} 
+                      value={form.lastName} 
                       onChange={(e) => setForm({...form, lastName: e.target.value})} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="Enter last name"
-                      tabIndex={2}
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">Password*</label>
                     <input 
                       type="password"
-                      value={form.password || ''} 
+                      value={form.password} 
                       onChange={(e) => setForm({...form, password: e.target.value})} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder="Enter password"
-                      tabIndex={4}
                     />
                   </div>
+          <div>
+            <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
+            <input 
+              value={form.address} 
+              onChange={(e) => setForm({...form, address: e.target.value})} 
+              className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              placeholder="Enter complete address"
+            />
+          </div>
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">Employee Type*</label>
                     <select 
                       value={form.employeeType} 
                       onChange={(e) => setForm({...form, employeeType: e.target.value})} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={6}
                     >
-                      <option value="End of Service">End of Service</option>
-                      <option value="Independent Contractor">Independent Contractor</option>
-                      <option value="Probationary">Probationary</option>
                       <option value="Regular">Regular</option>
-                      <option value="Resigned">Resigned</option>
-                      <option value="Separated">Separated</option>
-                      <option value="Terminated">Terminated</option>
+                      <option value="Contractor">Contractor</option>
+                      <option value="Temporary">Temporary</option>
                     </select>
                   </div>
-                </div>
-
-                {/* Full Width Address Field */}
-                <div className="col-span-2">
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
-                  <textarea 
-                    value={form.address || ''} 
-                    onChange={(e) => setForm({...form, address: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter complete address"
-                    rows="3"
-                    tabIndex={7}
-                  />
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Position</label>
+                    <select
+                      value={form.position}
+                      onChange={(e) => setForm({...form, position: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select position</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Supervisor">Supervisor</option>
+                      <option value="Staff">Staff</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -351,7 +528,6 @@ const EmployeePage = () => {
           </div>
         )}
 
-        {/* Edit Modal */}
         {editing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/20" onClick={closeEdit} />
@@ -359,7 +535,6 @@ const EmployeePage = () => {
               <button onClick={closeEdit} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 text-xl">✕</button>
               <h3 className="text-xl font-semibold text-blue-500 text-center mb-8">Edit employee</h3>
               <div className="grid grid-cols-2 gap-6">
-                {/* Left Column */}
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">First Name*</label>
@@ -393,9 +568,38 @@ const EmployeePage = () => {
                       tabIndex={5}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Client</label>
+                    <select
+                      value={form.client || ''}
+                      onChange={(e) => setForm({...form, client: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={7}
+                    >
+                      <option value="">Select client</option>
+                      <option value="Client A">Client A</option>
+                      <option value="Client B">Client B</option>
+                      <option value="Client C">Client C</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Department</label>
+                    <select
+                      value={form.department || ''}
+                      onChange={(e) => setForm({...form, department: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={9}
+                    >
+                      <option value="">Select department</option>
+                      <option value="IT Department">IT Department</option>
+                      <option value="HR Department">HR Department</option>
+                      <option value="Sales Department">Sales Department</option>
+                      <option value="Marketing Department">Marketing Department</option>
+                      <option value="Finance Department">Finance Department</option>
+                    </select>
+                  </div>
                 </div>
                 
-                {/* Right Column */}
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">Last Name*</label>
@@ -419,36 +623,44 @@ const EmployeePage = () => {
                     />
                   </div>
                   <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
+                    <input 
+                      value={form.address || ''} 
+                      onChange={(e) => setForm({...form, address: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Enter complete address"
+                      tabIndex={6}
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm text-gray-700 font-medium mb-2">Employee Type*</label>
                     <select 
-                      value={form.employeeType} 
+                      value={form.employeeType || 'Regular'} 
                       onChange={(e) => setForm({...form, employeeType: e.target.value})} 
                       className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      tabIndex={6}
+                      tabIndex={8}
                     >
-                      <option value="End of Service">End of Service</option>
-                      <option value="Independent Contractor">Independent Contractor</option>
-                      <option value="Probationary">Probationary</option>
                       <option value="Regular">Regular</option>
-                      <option value="Resigned">Resigned</option>
-                      <option value="Separated">Separated</option>
-                      <option value="Terminated">Terminated</option>
+                      <option value="Contractor">Contractor</option>
+                      <option value="Temporary">Temporary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-2">Position</label>
+                    <select
+                      value={form.position || ''}
+                      onChange={(e) => setForm({...form, position: e.target.value})}
+                      className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      tabIndex={10}
+                    >
+                      <option value="">Select position</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Supervisor">Supervisor</option>
+                      <option value="Staff">Staff</option>
                     </select>
                   </div>
                 </div>
-
-                {/* Full Width Address Field */}
-                <div className="col-span-2">
-                  <label className="block text-sm text-gray-700 font-medium mb-2">Address*</label>
-                  <textarea 
-                    value={form.address || ''} 
-                    onChange={(e) => setForm({...form, address: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-lg bg-gray-100 border-0 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Enter complete address"
-                    rows="3"
-                    tabIndex={7}
-                  />
-                </div>
+                
               </div>
               <div className="mt-8 flex items-center justify-between">
                 <button onClick={resetAll} className="text-blue-500 hover:text-blue-600 font-medium">Reset</button>
@@ -458,7 +670,6 @@ const EmployeePage = () => {
           </div>
         )}
 
-        {/* Delete Modal */}
         {deleting && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={closeDelete} />
