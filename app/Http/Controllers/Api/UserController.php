@@ -117,7 +117,7 @@ class UserController extends Controller
     public function show(string $id): JsonResponse
     {
         try {
-            $user = User::with(['role', 'userPermissions'])->findOrFail($id);
+            $user = User::with('role')->findOrFail($id);
             
             return response()->json([
                 'success' => true,
