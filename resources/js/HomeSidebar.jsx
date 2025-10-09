@@ -22,22 +22,20 @@ const HomeSidebar = ({ onSelect }) => {
     window.location &&
     window.location.pathname === path;
 
+  // Function to close all dropdowns
+  const closeAllDropdowns = () => {
+    setOpenTransaction(false);
+    setOpenEquipment(false);
+  };
+
   // Auto-close dropdowns when other menu items are clicked
   const handleMenuClick = (path, event) => {
     if (event) {
       event.preventDefault();
     }
     
-    // Close both dropdowns when clicking any main menu item that's not Transaction or Equipment
-    const transactionPaths = ["/viewrequest", "/viewapproved"];
-    const equipmentPaths = ["/equipment", "/addstocks"];
-    
-    if (!transactionPaths.includes(path)) {
-      setOpenTransaction(false);
-    }
-    if (!equipmentPaths.includes(path)) {
-      setOpenEquipment(false);
-    }
+    // Close all dropdowns when clicking any main menu item
+    closeAllDropdowns();
     
     // Simulate navigation (in real app, this would be handled by your router)
     if (typeof window !== "undefined") {
@@ -220,7 +218,18 @@ const HomeSidebar = ({ onSelect }) => {
               isActive("/viewrequest") || isActive("/viewapproved")
             )}
             onClick={() => {
+<<<<<<< HEAD
               setOpenTransaction(!openTransaction);
+=======
+              if (openTransaction) {
+                // If currently open, close it
+                setOpenTransaction(false);
+              } else {
+                // If currently closed, close equipment dropdown and open transaction
+                setOpenEquipment(false);
+                setOpenTransaction(true);
+              }
+>>>>>>> d1e039c8690f9f41d5d91f18eb17b4b9e3c350d8
             }}
           >
             <ArrowLeftRight className="h-5 w-5" />
@@ -272,7 +281,18 @@ const HomeSidebar = ({ onSelect }) => {
               isActive("/equipment") || isActive("/addstocks")
             )}
             onClick={() => {
+<<<<<<< HEAD
               setOpenEquipment(!openEquipment);
+=======
+              if (openEquipment) {
+                // If currently open, close it
+                setOpenEquipment(false);
+              } else {
+                // If currently closed, close transaction dropdown and open equipment
+                setOpenTransaction(false);
+                setOpenEquipment(true);
+              }
+>>>>>>> d1e039c8690f9f41d5d91f18eb17b4b9e3c350d8
             }}
           >
             <Folder className="h-5 w-5" />
