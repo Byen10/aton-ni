@@ -45,6 +45,7 @@ Route::get('/transactions/{id}/print', [TransactionController::class, 'print']);
 
 // Equipment API routes
 Route::apiResource('/equipment', EquipmentController::class);
+Route::post('/equipment/add-stock', [EquipmentController::class, 'addStock']);
 
 // Category API routes
 use App\Http\Controllers\Api\CategoryController;

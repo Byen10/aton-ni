@@ -271,6 +271,100 @@ class EquipmentController extends Controller
     }
 
     /**
+     * Add stock for existing equipment
+     */
+    public function addStock(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'equipment_id' => 'required|exists:equipment,id',
+                'serial_numbers' => 'required|string',
+                'receipt_image' => 'nullable|image|max:5120', // 5MB max
+            ]);
+
+            $equipment = Equipment::findOrFail($request->equipment_id);
+            $serialNumbers = json_decode($request->serial_numbers, true);
+
+            if (!is_array($serialNumbers) || empty($serialNumbers)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Serial numbers must be provided as an array'
+                ], 422);
+            }
+
+            $receiptImagePath = null;
+
+            // Handle receipt image upload
+            if ($request->hasFile('receipt_image')) {
+                if (!Storage::disk('public')->exists('equipment/receipts')) {
+                    Storage::disk('public')->makeDirectory('equipment/receipts');
+                }
+                $receiptImagePath = $request->file('receipt_image')->store('equipment/receipts', 'public');
+            }
+
+            $createdEquipment = [];
+
+            // Create new equipment entries for each serial number
+            foreach ($serialNumbers as $serialNumber) {
+                if (empty(trim($serialNumber))) {
+                    continue; // Skip empty serial numbers
+                }
+
+                // Check if serial number already exists
+                if (Equipment::where('serial_number', $serialNumber)->exists()) {
+                    continue; // Skip duplicate serial numbers
+                }
+
+                $newEquipment = Equipment::create([
+                    'name' => $equipment->name,
+                    'brand' => $equipment->brand,
+                    'model' => $equipment->model,
+                    'serial_number' => $serialNumber,
+                    'specifications' => $equipment->specifications,
+                    'status' => 'available',
+                    'condition' => 'excellent',
+                    'purchase_price' => $equipment->purchase_price,
+                    'location' => $equipment->location,
+                    'item_image' => $equipment->item_image,
+                    'receipt_image' => $receiptImagePath,
+                    'purchase_date' => now(),
+                    'category_id' => $equipment->category_id,
+                ]);
+
+                $createdEquipment[] = $newEquipment;
+
+                // Log the activity
+                ActivityLogService::logEquipmentActivity(
+                    'Added stock',
+                    "Added stock for {$equipment->brand} with serial number {$serialNumber}",
+                    $newEquipment
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock added successfully',
+                'data' => [
+                    'created_count' => count($createdEquipment),
+                    'equipment' => $createdEquipment
+                ]
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error adding stock: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get equipment statistics
      */
     public function statistics(): JsonResponse
