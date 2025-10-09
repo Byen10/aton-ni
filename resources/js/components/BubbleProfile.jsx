@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Edit, Archive, Home, Clock, Printer, LogOut, ChevronRight } from 'lucide-react';
+import { Edit, Archive, Home, LogOut, ChevronRight } from 'lucide-react';
 import ProfileDetailsModal from './ProfileDetailsModal';
 
 const BubbleProfile = ({ 
@@ -143,7 +143,10 @@ const BubbleProfile = ({
                                 <span className="text-gray-700">Edit Profile</span>
                             </button>
                             
-                            <button className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors">
+                            <button 
+                                onClick={() => window.location.href = '/archive'}
+                                className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors"
+                            >
                                 <Archive className="w-5 h-5 text-gray-600" />
                                 <span className="text-gray-700">Archive</span>
                             </button>
@@ -154,19 +157,6 @@ const BubbleProfile = ({
                             </button>
                         </div>
 
-                        {/* Second Group */}
-                        <div className="border-t border-gray-100 my-2"></div>
-                        <div className="space-y-1">
-                            <button className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors">
-                                <Clock className="w-5 h-5 text-gray-600" />
-                                <span className="text-gray-700">Support</span>
-                            </button>
-                            
-                            <button className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors">
-                                <Printer className="w-5 h-5 text-gray-600" />
-                                <span className="text-gray-700">Print</span>
-                            </button>
-                        </div>
 
                         {/* Logout Button */}
                         <div className="border-t border-gray-100 my-2"></div>

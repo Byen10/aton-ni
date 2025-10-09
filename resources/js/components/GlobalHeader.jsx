@@ -168,17 +168,17 @@ const GlobalHeader = ({ title = "", onSearch, hideSearch = false, showTitle = tr
     return (
       <header className="flex items-center justify-between px-10 py-6 bg-white">
         {!hideSearch && (
-          <div className="flex-1" style={{ maxWidth: "644px" }}>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search"
-                className="w-full pl-10 pr-4 py-3 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-5 text-gray-400" />
-            </div>
+        <div className="flex-1" style={{ maxWidth: "644px" }}>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full pl-10 pr-4 py-3 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-5 text-gray-400" />
           </div>
+        </div>
         )}
         <div className="flex items-center space-x-6">
           {showTitle && <span className="text-gray-700 font-medium hidden sm:block">{user?.name || "User"}</span>}

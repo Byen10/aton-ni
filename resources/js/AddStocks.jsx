@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import HomeSidebar from './HomeSidebar';
-import { Copy, Plus, Minus, X, ChevronRight } from 'lucide-react';
+import { Copy, Plus, Minus, X, ChevronRight, ArrowLeft, Grid3X3, Search } from 'lucide-react';
 import GlobalHeader from './components/GlobalHeader';
 
 // Add custom scrollbar styles
@@ -419,12 +419,9 @@ const AddStocks = () => {
         {isAddStocksOpen && (
           <AddStocksModal
             onClose={closeModal}
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
-            serialNumbers={serialNumbers}
-            addSerialRow={addSerialRow}
-            removeSerialRow={removeSerialRow}
-            updateSerial={updateSerial}
+            selectedEquipment={selectedEquipment}
+            categories={categories}
+            onSuccess={fetchEquipment}
           />
         )}
         {isAddItemOpen && (
@@ -441,13 +438,55 @@ const AddStocks = () => {
 
 export default AddStocks;
 
-// Modal Component
-const AddStocksModal = ({ onClose, selectedEquipment }) => {
+// New AddStocksModal Component with Three Progressive Modes
+const AddStocksModal = ({ onClose, selectedEquipment, categories = [], onSuccess }) => {
+  const [currentMode, setCurrentMode] = useState('category'); // 'category', 'product', 'serial'
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [serialNumbers, setSerialNumbers] = useState(['']);
-  const [errors, setErrors] = useState({});
   const [receipt, setReceipt] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  // Fetch products when category is selected
+  useEffect(() => {
+    if (selectedCategory) {
+      fetchProducts(selectedCategory.id);
+    }
+  }, [selectedCategory]);
+
+  const fetchProducts = async (categoryId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/equipment?category_id=${categoryId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setProducts(data.data.data || []);
+      } else {
+        setErrors({ products: 'Failed to fetch products' });
+      }
+    } catch (err) {
+      setErrors({ products: 'Error fetching products' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setCurrentMode('product');
+    setErrors({});
+  };
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product);
+    setCurrentMode('serial');
+    setErrors({});
+  };
 
   const handleSerialChange = (index, value) => {
     const newSerialNumbers = [...serialNumbers];
@@ -499,7 +538,7 @@ const AddStocksModal = ({ onClose, selectedEquipment }) => {
 
     try {
       const formData = new FormData();
-      formData.append('equipment_id', selectedEquipment.id);
+      formData.append('equipment_id', selectedProduct.id);
       formData.append('serial_numbers', JSON.stringify(serialNumbers));
       formData.append('receipt_image', receipt);
 
@@ -514,14 +553,29 @@ const AddStocksModal = ({ onClose, selectedEquipment }) => {
         throw new Error(data.message || 'Error adding stocks');
       }
 
-      onClose(); // Close modal on success
-      // You might want to refresh the equipment list here
+      if (onSuccess) onSuccess();
+      onClose();
     } catch (error) {
       setErrors({ submit: error.message });
     } finally {
       setLoading(false);
     }
   };
+
+  const goBack = () => {
+    if (currentMode === 'product') {
+      setCurrentMode('category');
+      setSelectedCategory(null);
+    } else if (currentMode === 'serial') {
+      setCurrentMode('product');
+      setSelectedProduct(null);
+    }
+  };
+
+  const filteredProducts = products.filter(product =>
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.brand?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -532,73 +586,172 @@ const AddStocksModal = ({ onClose, selectedEquipment }) => {
         </button>
         <h3 className="text-xl font-bold text-blue-600 text-center">Add Stocks</h3>
 
-        <form onSubmit={handleSubmit}>
-          {/* Selected Item Info */}
-          <div className="mt-5">
-            <label className="text-sm text-gray-600">Item</label>
-            <div className="mt-2 flex items-start space-x-4">
-              {selectedEquipment.item_image ? (
-                <img 
-                  src={`/storage/${selectedEquipment.item_image}`}
-                  alt={selectedEquipment.name}
-                  className="w-20 h-20 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400 text-xs">No image</span>
-                </div>
-              )}
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900">{selectedEquipment.name}</h4>
-                <p className="text-sm text-gray-500">{selectedEquipment.specifications}</p>
-                <div className="mt-1 flex items-center gap-3 text-sm">
-                  <span className="text-gray-600">Brand: {selectedEquipment.brand}</span>
-                  <span className="text-gray-600">Category: {selectedEquipment.category?.name}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Serial Numbers */}
+        {/* Category Selection Mode */}
+        {currentMode === 'category' && (
           <div className="mt-6">
-            <label className="text-sm text-gray-600">Serial Numbers</label>
-            <div className="mt-2 space-y-3">
-              {serialNumbers.map((serial, idx) => (
-                <div key={idx} className="flex items-center space-x-3">
-                  <input 
-                    value={serial}
-                    onChange={(e) => handleSerialChange(idx, e.target.value)}
-                    placeholder="Enter serial number"
-                    className="flex-1 px-3 py-2 rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                  />
-                  <button 
-                    type="button"
-                    onClick={addSerialField}
-                    className="p-1.5 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                  {serialNumbers.length > 1 && (
-                    <button 
-                      type="button"
-                      onClick={() => removeSerialField(idx)}
-                      className="p-1.5 rounded-md bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                  )}
+            <div className="relative mb-4">
+              <input
+                type="text"
+                placeholder="Monitor"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pl-10"
+              />
+              <div className="absolute left-3 top-3.5 text-gray-400">
+                <Search className="h-5 w-5" />
+              </div>
+              <button className="absolute right-3 top-3.5 text-gray-400">
+                <Grid3X3 className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  onClick={() => handleCategorySelect(category)}
+                  className="p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-colors"
+                >
+                  <div className="font-medium text-gray-900">{category.name}</div>
                 </div>
               ))}
             </div>
-            {errors.serials && (
-              <p className="mt-1 text-sm text-red-500">{errors.serials}</p>
-            )}
           </div>
+        )}
 
-          {/* Receipt Upload */}
+        {/* Product Selection Mode */}
+        {currentMode === 'product' && (
           <div className="mt-6">
-            <label className="text-sm text-gray-600">Receipt Image</label>
-            <div className="mt-2">
+            <div className="flex items-center mb-4">
+              <button
+                onClick={goBack}
+                className="flex items-center text-blue-600 hover:text-blue-700 mr-3"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </button>
+              <span className="text-sm text-gray-600">{selectedCategory?.name}</span>
+            </div>
+
+            <div className="relative mb-4">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pl-10"
+              />
+              <div className="absolute left-3 top-3.5 text-gray-400">
+                <Search className="h-5 w-5" />
+              </div>
+              <button className="absolute right-3 top-3.5 text-gray-400">
+                <Grid3X3 className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {loading ? (
+                <div className="text-center py-4 text-gray-500">Loading products...</div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No products found</div>
+              ) : (
+                filteredProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    onClick={() => handleProductSelect(product)}
+                    className="p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-colors"
+                  >
+                    <div className="font-medium text-gray-900">{product.brand}</div>
+                    <div className="text-sm text-gray-500">{product.specifications}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Serial Number Entry Mode */}
+        {currentMode === 'serial' && (
+          <form onSubmit={handleSubmit}>
+            {/* Selected Product Info */}
+            <div className="mt-6">
+              <div className="flex items-center mb-4">
+                <button
+                  onClick={goBack}
+                  className="flex items-center text-blue-600 hover:text-blue-700 mr-3"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </button>
+                <span className="text-sm text-gray-600">{selectedCategory?.name}</span>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-4">
+                  {selectedProduct?.item_image ? (
+                    <img 
+                      src={`/storage/${selectedProduct.item_image}`}
+                      alt={selectedProduct.name}
+                      className="w-16 h-16 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400 text-xs">No img</span>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-gray-900">{selectedProduct?.brand}</h4>
+                      <button className="p-1 rounded text-gray-400 hover:text-blue-600">
+                        <Grid3X3 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{selectedProduct?.specifications}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Serial Numbers */}
+            <div className="mb-6">
+              <label className="text-sm text-gray-600 mb-2 block">Serial Numbers</label>
+              <div className="space-y-3 max-h-48 overflow-y-auto">
+                {serialNumbers.map((serial, idx) => (
+                  <div key={idx} className="flex items-center space-x-3">
+                    <label className="text-sm text-gray-500 w-20">Serial No.</label>
+                    <input 
+                      value={serial}
+                      onChange={(e) => handleSerialChange(idx, e.target.value)}
+                      placeholder="4354354"
+                      className="flex-1 px-3 py-2 rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    />
+                    <button 
+                      type="button"
+                      onClick={addSerialField}
+                      className="p-1.5 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    {serialNumbers.length > 1 && (
+                      <button 
+                        type="button"
+                        onClick={() => removeSerialField(idx)}
+                        className="p-1.5 rounded-md bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {errors.serials && (
+                <p className="mt-1 text-sm text-red-500">{errors.serials}</p>
+              )}
+            </div>
+
+            {/* Receipt Upload */}
+            <div className="mb-6">
+              <label className="text-sm text-gray-600 mb-2 block">Description</label>
               <div 
                 className={`h-36 w-full border-2 border-dashed rounded-lg ${
                   receipt ? 'border-blue-300' : 'border-gray-300'
@@ -643,8 +796,8 @@ const AddStocksModal = ({ onClose, selectedEquipment }) => {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full">
-                    <div className="p-2 rounded-full bg-blue-50 mb-2">
-                      <Plus className="h-6 w-6 text-blue-500" />
+                    <div className="p-2 rounded-full bg-gray-100 mb-2">
+                      <Grid3X3 className="h-6 w-6 text-gray-400" />
                     </div>
                     <div className="text-sm font-medium text-gray-700">Click to upload</div>
                     <div className="text-xs text-gray-500 mt-1">or drag and drop</div>
@@ -658,28 +811,28 @@ const AddStocksModal = ({ onClose, selectedEquipment }) => {
                 <p className="mt-1 text-sm text-red-500">{errors.receipt}</p>
               )}
             </div>
-          </div>
 
-          {errors.submit && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-              {errors.submit}
+            {errors.submit && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                {errors.submit}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end">
+              <button 
+                type="submit"
+                disabled={loading}
+                className={`inline-flex items-center px-5 py-2 rounded-full ${
+                  loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+                } text-white transition-colors`}
+              >
+                <span>{loading ? 'Saving...' : 'Save'}</span>
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </button>
             </div>
-          )}
-
-          {/* Actions */}
-          <div className="mt-6 flex justify-end">
-            <button 
-              type="submit"
-              disabled={loading}
-              className={`inline-flex items-center px-5 py-2 rounded-full ${
-                loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-              } text-white transition-colors`}
-            >
-              <span>{loading ? 'Saving...' : 'Save'}</span>
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </button>
-          </div>
-        </form>
+          </form>
+        )}
       </div>
     </div>
   );

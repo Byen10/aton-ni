@@ -18,6 +18,12 @@ class RequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            // First, let's check if the tables exist and have data
+            $requestsCount = DB::table('requests')->count();
+            $employeesCount = DB::table('employees')->count();
+            $equipmentCount = DB::table('equipment')->count();
+            
+            // Simple query first to test
             $query = DB::table('requests')
                 ->leftJoin('employees', 'requests.employee_id', '=', 'employees.id')
                 ->leftJoin('equipment', 'requests.equipment_id', '=', 'equipment.id')
@@ -28,7 +34,7 @@ class RequestController extends Controller
                     DB::raw("COALESCE(employees.first_name, '') as first_name"),
                     DB::raw("COALESCE(employees.last_name, '') as last_name"),
                     DB::raw("CONCAT(COALESCE(employees.first_name, ''), ' ', COALESCE(employees.last_name, '')) as full_name"),
-                    DB::raw("COALESCE(employees.employee_type, '') as position"),
+                    DB::raw("COALESCE(employees.position, '') as position"),
                     DB::raw("COALESCE(equipment.name, '') as equipment_name"),
                     DB::raw("COALESCE(equipment.brand, '') as brand"),
                     DB::raw("COALESCE(equipment.model, '') as model"),
@@ -74,7 +80,12 @@ class RequestController extends Controller
         return response()->json([
             'success' => true,
             'data' => $requests,
-                'count' => $requests->count(),
+            'count' => $requests->count(),
+            'debug' => [
+                'requests_count' => $requestsCount,
+                'employees_count' => $employeesCount,
+                'equipment_count' => $equipmentCount
+            ],
             'message' => 'Requests retrieved successfully'
         ]);
         } catch (\Exception $e) {
@@ -203,7 +214,7 @@ class RequestController extends Controller
                 ->select(
                     'requests.*',
                     DB::raw("CONCAT(COALESCE(employees.first_name, ''), ' ', COALESCE(employees.last_name, '')) as full_name"),
-                    DB::raw("COALESCE(employees.employee_type, '') as position"),
+                    DB::raw("COALESCE(employees.position, '') as position"),
                     DB::raw("COALESCE(equipment.name, '') as equipment_name"),
                     DB::raw("COALESCE(equipment.brand, '') as brand"),
                     DB::raw("COALESCE(equipment.model, '') as model"),
