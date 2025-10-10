@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import HomeSidebar from "./HomeSidebar";
 import GlobalHeader from "./components/GlobalHeader";
 import api from './services/api';
@@ -20,6 +20,8 @@ const HomePage = () => {
     reportStats: {}
   });
   const [loading, setLoading] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -174,6 +176,21 @@ const HomePage = () => {
     fetchDashboardData();
   }, []);
 
+  // Handle scroll events for fade-out effect
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollContainerRef.current) {
+        setScrollY(scrollContainerRef.current.scrollTop);
+      }
+    };
+
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden bg-white">
       {/* Sidebar */}
@@ -186,39 +203,53 @@ const HomePage = () => {
         />
 
         {/* Main Content Area */}
-        <main className="px-10 pt-3 pb-6 flex-1 overflow-y-auto">
-          <div className="min-h-full">
-            <h2 className="text-4xl font-bold text-[#2262C6]">Dashboard</h2>
+        <main className="px-10 pt-3 pb-6 flex-1 flex flex-col overflow-hidden">
+          {/* Scrollable Content Container */}
+          <div 
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto transaction-scrollbar sticky-transition"
+            style={{ maxHeight: 'calc(100vh - 200px)' }}
+          >
+            {/* Labels that fade out on scroll */}
+            <div 
+              className={`transition-all duration-500 ease-in-out ${
+                scrollY > 50 ? 'opacity-0 transform -translate-y-2' : 'opacity-100 transform translate-y-0'
+              }`}
+            >
+              <h2 className="text-4xl font-bold text-[#2262C6] transition-all duration-300">Dashboard</h2>
+            </div>
 
-            {/* Stats Cards - Much Smaller Size with Fixed Height */}
-            <div className="grid grid-cols-3 gap-9 mt-6">
-              <div className="bg-gradient-to-b from-[#0064FF] to-[#003C99] text-white rounded-2xl p-3 shadow flex flex-col h-26">
-                <h4 className="text-xs uppercase tracking-wider opacity-80">Total Number of Equipment</h4>
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="text-2xl font-bold">{loading ? '...' : dashboardData.totalEquipment}</p>
-                  <div className="w-6 h-6 rounded-full bg-white/30"></div>
+            {/* Stats Cards - scroll with content initially, then stick at top */}
+            <div className="sticky top-0 z-10 bg-white pb-4 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-9 transition-all duration-300">
+                <div className="bg-gradient-to-b from-[#0064FF] to-[#003C99] text-white rounded-2xl p-3 shadow flex flex-col h-26">
+                  <h4 className="text-xs uppercase tracking-wider opacity-80">Total Number of Equipment</h4>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-2xl font-bold">{loading ? '...' : dashboardData.totalEquipment}</p>
+                    <div className="w-6 h-6 rounded-full bg-white/30"></div>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-gray-100 rounded-2xl p-3 shadow flex flex-col h-26">
-                <h4 className="text-xs font-semibold text-gray-600">Available stock</h4>
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardData.availableStock}</p>
-                  <div className="w-6 h-6 rounded-full bg-gray-300"></div>
+                <div className="bg-gray-100 rounded-2xl p-3 shadow flex flex-col h-26">
+                  <h4 className="text-xs font-semibold text-gray-600">Available stock</h4>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardData.availableStock}</p>
+                    <div className="w-6 h-6 rounded-full bg-gray-300"></div>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-gray-100 rounded-2xl p-3 shadow flex flex-col h-26">
-                <h4 className="text-xs font-semibold text-gray-600">Current holder</h4>
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardData.currentHolder}</p>
-                  <div className="w-6 h-6 rounded-full bg-gray-300"></div>
+                <div className="bg-gray-100 rounded-2xl p-3 shadow flex flex-col h-26">
+                  <h4 className="text-xs font-semibold text-gray-600">Current holder</h4>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardData.currentHolder}</p>
+                    <div className="w-6 h-6 rounded-full bg-gray-300"></div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Tables */}
-            <div className="grid grid-cols-2 gap-6 mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             {/* Equipment by Category */}
-           <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-5">
+           <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4 md:p-5 transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Equipment by Category</h3>
               </div>
@@ -255,7 +286,7 @@ const HomePage = () => {
                                 ? 'bg-yellow-100 text-yellow-700'
                                 : 'bg-red-100 text-red-700'
                             }`}>
-                              {category.percentage}% Available
+                              {category.percentage === 0 ? '0% Unavailable' : `${category.percentage}% Available`}
                             </span>
                           </td>
                         </tr>
@@ -267,7 +298,7 @@ const HomePage = () => {
             </div>
 
             {/* New Arrival */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-5">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-4 md:p-5 transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">New Arrival</h3>
               </div>
@@ -313,7 +344,7 @@ const HomePage = () => {
             {/* Additional Boxes */}
             <div className="mt-6 mb-6">
               {/* Report Overview */}
-              <div className="bg-[#F8FAFF] rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="bg-[#F8FAFF] rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6 transition-all duration-300">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-gray-800">Report Overview</h3>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Printer, ChevronDown } from 'lucide-react';
 import GlobalHeader from './components/GlobalHeader';
 import HomeSidebar from './HomeSidebar';
@@ -38,6 +38,8 @@ const ViewApproved = () => {
   const [view, setView] = useState('viewApproved');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [scrollY, setScrollY] = useState(0);
+  const scrollContainerRef = useRef(null);
   
   // Modal states
   const [confirmModal, setConfirmModal] = useState({
@@ -65,6 +67,21 @@ const ViewApproved = () => {
   // Fetch data on component mount
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // Handle scroll events for fade-out effect
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollContainerRef.current) {
+        setScrollY(scrollContainerRef.current.scrollTop);
+      }
+    };
+
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }
   }, []);
 
   const fetchData = async () => {
@@ -260,34 +277,48 @@ const ViewApproved = () => {
         <GlobalHeader title="View Approved" />
 
         <main className="px-10 py-6 mb-10 flex flex-col overflow-hidden">
-          <h2 className="text-4xl font-bold text-blue-600">Transaction</h2>
-          <h3 className="text-base font-semibold text-gray-700 mt-3 tracking-wide">QUICK ACCESS</h3>
+          {/* Scrollable Content Container */}
+          <div 
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto transaction-scrollbar sticky-transition"
+            style={{ maxHeight: 'calc(100vh - 200px)' }}
+          >
+            {/* Labels that fade out on scroll */}
+            <div 
+              className={`transition-all duration-500 ease-in-out ${
+                scrollY > 50 ? 'opacity-0 transform -translate-y-2' : 'opacity-100 transform translate-y-0'
+              }`}
+            >
+              <h2 className="text-4xl font-bold text-blue-600 transition-all duration-300">Transaction</h2>
+              <h3 className="text-base font-semibold text-gray-700 mt-3 tracking-wide transition-all duration-300">QUICK ACCESS</h3>
+            </div>
 
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-9 mt-6">
-            <div className="bg-gradient-to-b from-[#0064FF] to-[#003C99] text-white rounded-2xl p-3 shadow flex flex-col h-26">
-              <h4 className="text-sm uppercase tracking-wider opacity-80">New Requests</h4>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-5xl font-bold">{loading ? '...' : dashboardStats.new_requests}</p>
-                <div className="w-6 h-6 rounded-full bg-white/30"></div>
+            {/* Stats Cards - scroll with content initially, then stick at top */}
+            <div className="sticky top-0 z-10 bg-white pb-4 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-9 transition-all duration-300">
+                <div className="bg-gradient-to-b from-[#0064FF] to-[#003C99] text-white rounded-2xl p-3 shadow flex flex-col h-26">
+                  <h4 className="text-sm uppercase tracking-wider opacity-80">New Approved</h4>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-5xl font-bold">{loading ? '...' : dashboardStats.new_requests}</p>
+                    <div className="w-6 h-6 rounded-full bg-white/30"></div>
+                  </div>
+                </div>
+                <div className="bg-gray-100 rounded-2xl p-3 shadow flex flex-col h-26">
+                  <h4 className="text-sm font-semibold text-gray-600">Current holder</h4>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.current_holders}</p>
+                    <div className="w-6 h-6 rounded-full bg-gray-300"></div>
+                  </div>
+                </div>
+                <div className="bg-gray-100 rounded-2xl p-6 shadow flex flex-col h-26">
+                  <h4 className="text-sm font-semibold text-gray-600">Verify Return</h4>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.verify_returns}</p>
+                    <div className="w-6 h-6 rounded-full bg-gray-300"></div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="bg-gray-100 rounded-2xl p-3 shadow flex flex-col h-26">
-              <h4 className="text-sm font-semibold text-gray-600">Current holder</h4>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.current_holders}</p>
-                <div className="w-6 h-6 rounded-full bg-gray-300"></div>
-              </div>
-            </div>
-            <div className="bg-gray-100 rounded-2xl p-6 shadow flex flex-col h-26">
-              <h4 className="text-sm font-semibold text-gray-600">Verify Return</h4>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : dashboardStats.verify_returns}</p>
-                <div className="w-6 h-6 rounded-full bg-gray-300"></div>
-              </div>
-            </div>
-          </div>
 
           {/* Mode dropdown moved to section headers for alignment with titles */}
 
@@ -316,18 +347,19 @@ const ViewApproved = () => {
                   )}
                 </div>
               </div>
-              <div className="mt-4 bg-white rounded-2xl shadow p-6 border border-gray-100">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-600">
-                    <tr className="border-b">
-                      <th className="py-2 px-3">Name</th>
-                      <th className="py-2 px-3">Position</th>
-                      <th className="py-2 px-3">Item</th>
-                      <th className="py-2 px-3">Status</th>
-                      <th className="py-2 px-3">Approved by</th>
-                      <th className="py-2 px-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
+              <div className="mt-4 bg-white rounded-2xl shadow p-4 md:p-6 border border-gray-100 transition-all duration-300">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left min-w-full">
+                    <thead className="bg-gray-50 text-gray-600">
+                      <tr className="border-b">
+                        <th className="py-2 px-3">Name</th>
+                        <th className="py-2 px-3">Position</th>
+                        <th className="py-2 px-3">Item</th>
+                        <th className="py-2 px-3">Status</th>
+                        <th className="py-2 px-3">Approved by</th>
+                        <th className="py-2 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
                   <tbody className="divide-y divide-gray-100">
                     {loading ? (
                       <tr>
@@ -390,7 +422,8 @@ const ViewApproved = () => {
                       ))
                     )}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             </>
           )}
@@ -420,18 +453,19 @@ const ViewApproved = () => {
                   )}
                 </div>
               </div>
-              <div className="mt-4 bg-white rounded-2xl shadow p-6 border border-gray-100">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-600">
-                    <tr className="border-b">
-                      <th className="py-2 px-3">Name</th>
-                      <th className="py-2 px-3">Position</th>
-                      <th className="py-2 px-3">Item</th>
-                      <th className="py-2 px-3">Request mode</th>
-                      <th className="py-2 px-3">End Date</th>
-                      <th className="py-2 px-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
+              <div className="mt-4 bg-white rounded-2xl shadow p-4 md:p-6 border border-gray-100 transition-all duration-300">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left min-w-full">
+                    <thead className="bg-gray-50 text-gray-600">
+                      <tr className="border-b">
+                        <th className="py-2 px-3">Name</th>
+                        <th className="py-2 px-3">Position</th>
+                        <th className="py-2 px-3">Item</th>
+                        <th className="py-2 px-3">Request mode</th>
+                        <th className="py-2 px-3">End Date</th>
+                        <th className="py-2 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
                   <tbody className="divide-y divide-gray-100">
                     {loading ? (
                       <tr>
@@ -477,7 +511,8 @@ const ViewApproved = () => {
                       ))
                     )}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             </>
           )}
@@ -507,17 +542,18 @@ const ViewApproved = () => {
                   )}
                 </div>
               </div>
-              <div className="mt-4 bg-white rounded-2xl shadow p-6 border border-gray-100">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-600">
-                    <tr className="border-b">
-                      <th className="py-2 px-3">Name</th>
-                      <th className="py-2 px-3">Position</th>
-                      <th className="py-2 px-3">Item</th>
-                      <th className="py-2 px-3">End Date</th>
-                      <th className="py-2 px-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
+              <div className="mt-4 bg-white rounded-2xl shadow p-4 md:p-6 border border-gray-100 transition-all duration-300">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left min-w-full">
+                    <thead className="bg-gray-50 text-gray-600">
+                      <tr className="border-b">
+                        <th className="py-2 px-3">Name</th>
+                        <th className="py-2 px-3">Position</th>
+                        <th className="py-2 px-3">Item</th>
+                        <th className="py-2 px-3">End Date</th>
+                        <th className="py-2 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
                   <tbody className="divide-y divide-gray-100">
                     {loading ? (
                       <tr>
@@ -562,10 +598,12 @@ const ViewApproved = () => {
                       ))
                     )}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             </>
           )}
+          </div>
         </main>
       </div>
 
