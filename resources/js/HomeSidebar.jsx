@@ -218,9 +218,6 @@ const HomeSidebar = ({ onSelect }) => {
               isActive("/viewrequest") || isActive("/viewapproved")
             )}
             onClick={() => {
-<<<<<<< HEAD
-              setOpenTransaction(!openTransaction);
-=======
               if (openTransaction) {
                 // If currently open, close it
                 setOpenTransaction(false);
@@ -229,7 +226,6 @@ const HomeSidebar = ({ onSelect }) => {
                 setOpenEquipment(false);
                 setOpenTransaction(true);
               }
->>>>>>> d1e039c8690f9f41d5d91f18eb17b4b9e3c350d8
             }}
           >
             <ArrowLeftRight className="h-5 w-5" />
@@ -281,9 +277,6 @@ const HomeSidebar = ({ onSelect }) => {
               isActive("/equipment") || isActive("/addstocks")
             )}
             onClick={() => {
-<<<<<<< HEAD
-              setOpenEquipment(!openEquipment);
-=======
               if (openEquipment) {
                 // If currently open, close it
                 setOpenEquipment(false);
@@ -292,7 +285,6 @@ const HomeSidebar = ({ onSelect }) => {
                 setOpenTransaction(false);
                 setOpenEquipment(true);
               }
->>>>>>> d1e039c8690f9f41d5d91f18eb17b4b9e3c350d8
             }}
           >
             <Folder className="h-5 w-5" />
