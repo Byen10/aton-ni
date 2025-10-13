@@ -12,6 +12,31 @@ const EmployeeHome = () => {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [returnDate, setReturnDate] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
+  // Helper function to group equipment by specs
+  const groupEquipmentBySpecs = (equipmentList) => {
+    const grouped = {};
+    
+    equipmentList.forEach(item => {
+      const key = `${item.brand || 'Unknown'}_${item.specifications || 'No specs'}`;
+      
+      if (grouped[key]) {
+        // Add to existing group
+        grouped[key].totalStock += (item.quantity || item.stock || 1);
+        grouped[key].equipmentIds.push(item.id);
+      } else {
+        // Create new group
+        grouped[key] = {
+          ...item,
+          totalStock: item.quantity || item.stock || 1,
+          equipmentIds: [item.id],
+          groupKey: key
+        };
+      }
+    });
+    
+    return Object.values(grouped);
+  };
+
   // Load data on component mount
   useEffect(() => {
     const controller = new AbortController();
@@ -65,7 +90,9 @@ const EmployeeHome = () => {
           })));
         }
         
-        setEquipment(equipmentData);
+        // Group equipment by specs
+        const groupedEquipment = groupEquipmentBySpecs(equipmentData);
+        setEquipment(groupedEquipment);
       } catch (e) {
         if (e.name !== 'AbortError') setError('Failed to load data');
       } finally {
@@ -110,7 +137,9 @@ const EmployeeHome = () => {
         })));
       }
       
-      setEquipment(equipmentData);
+      // Group equipment by specs
+      const groupedEquipment = groupEquipmentBySpecs(equipmentData);
+      setEquipment(groupedEquipment);
     } catch (e) {
       setError('Failed to load equipment for category');
     } finally {
@@ -123,10 +152,20 @@ const EmployeeHome = () => {
       alert('This equipment is currently unavailable. Please choose another item.');
       return;
     }
-    const existingItem = cartItems.find(cartItem => cartItem.id === item.id);
+    
+    // Check available stock (use totalStock for grouped items)
+    const availableStock = item.totalStock || item.quantity || item.stock || 1;
+    const existingItem = cartItems.find(cartItem => cartItem.groupKey === item.groupKey);
+    const currentCartQuantity = existingItem ? existingItem.quantity : 0;
+    
+    if (currentCartQuantity >= availableStock) {
+      alert(`Only ${availableStock} unit(s) available in stock.`);
+      return;
+    }
+    
     if (existingItem) {
       setCartItems(cartItems.map(cartItem => 
-        cartItem.id === item.id 
+        cartItem.groupKey === item.groupKey
           ? { ...cartItem, quantity: cartItem.quantity + 1 }
           : cartItem
       ));
@@ -152,16 +191,16 @@ const EmployeeHome = () => {
     }
   };
 
-  const handleRemoveFromCart = (itemId) => {
-    setCartItems(cartItems.filter(item => item.id !== itemId));
+  const handleRemoveFromCart = (groupKey) => {
+    setCartItems(cartItems.filter(item => item.groupKey !== groupKey));
   };
 
-  const handleQuantityChange = (itemId, newQuantity) => {
+  const handleQuantityChange = (groupKey, newQuantity) => {
     if (newQuantity <= 0) {
-      handleRemoveFromCart(itemId);
+      handleRemoveFromCart(groupKey);
     } else {
       setCartItems(cartItems.map(item => 
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
+        item.groupKey === groupKey ? { ...item, quantity: newQuantity } : item
       ));
     }
   };
@@ -392,45 +431,68 @@ const EmployeeHome = () => {
                 <div className="col-span-2"></div>
               </div>
               
-              {equipment.slice(0, 4).map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-4 items-center py-3 border-b border-gray-100">
-                  <div className="col-span-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                        <img
-                          src={item.item_image_url || (item.item_image ? 
-                            (item.item_image.startsWith('http') ? item.item_image :
-                             item.item_image.startsWith('/storage') ? `${window.location.origin}${item.item_image}` :
-                             `${window.location.origin}/storage/${item.item_image}`) :
-                            `${window.location.origin}/images/placeholder-equipment.png`)}
-                          alt={item.brand || item.name || 'Equipment'}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = `${window.location.origin}/images/placeholder-equipment.png`;
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{item.brand || item.name || 'Unknown'}</div>
-                        <div className="text-xs text-gray-500">{item.status || 'available'}</div>
+              {equipment.slice(0, 4).filter((item) => {
+                // Filter out items that are out of stock (all units in cart)
+                const availableStock = item.totalStock || item.quantity || item.stock || 1;
+                const existingItem = cartItems.find(cartItem => cartItem.groupKey === item.groupKey);
+                const currentCartQuantity = existingItem ? existingItem.quantity : 0;
+                const isOutOfStock = currentCartQuantity >= availableStock || (item.status && item.status !== 'available');
+                
+                // Only show items that are not out of stock
+                return !isOutOfStock;
+              }).map((item) => {
+                const availableStock = item.totalStock || item.quantity || item.stock || 1;
+                const existingItem = cartItems.find(cartItem => cartItem.groupKey === item.groupKey);
+                const currentCartQuantity = existingItem ? existingItem.quantity : 0;
+                const isOutOfStock = currentCartQuantity >= availableStock || (item.status && item.status !== 'available');
+                
+                return (
+                  <div key={item.groupKey || item.id} className="grid grid-cols-12 gap-4 items-center py-3 border-b border-gray-100">
+                    <div className="col-span-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                          <img
+                            src={item.item_image_url || (item.item_image ? 
+                              (item.item_image.startsWith('http') ? item.item_image :
+                               item.item_image.startsWith('/storage') ? `${window.location.origin}${item.item_image}` :
+                               `${window.location.origin}/storage/${item.item_image}`) :
+                              `${window.location.origin}/images/placeholder-equipment.png`)}
+                            alt={item.brand || item.name || 'Equipment'}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `${window.location.origin}/images/placeholder-equipment.png`;
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{item.brand || item.name || 'Unknown'}</div>
+                          <div className="text-xs text-gray-500">
+                            {availableStock - currentCartQuantity <= 0 ? (
+                              <span className="text-red-600 font-semibold">Out of stock</span>
+                            ) : (
+                              `${item.status || 'available'} (${availableStock - currentCartQuantity} left)`
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
+                    <div className="col-span-7">
+                      <p className="text-sm text-gray-600">{item.specifications || 'No specs available'}</p>
+                    </div>
+                    <div className="col-span-2 flex justify-end">
+                      <button 
+                        onClick={() => handlePlusClick(item)}
+                        disabled={isOutOfStock}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOutOfStock ? 'bg-gray-200 cursor-not-allowed' : 'bg-blue-100 hover:bg-blue-200'}`}
+                        title={isOutOfStock ? 'Out of stock' : 'Add to cart'}
+                      >
+                        <Plus className={`h-4 w-4 ${isOutOfStock ? 'text-gray-400' : 'text-blue-600'}`} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="col-span-7">
-                    <p className="text-sm text-gray-600">{item.specifications || 'No specs available'}</p>
-                  </div>
-                  <div className="col-span-2 flex justify-end">
-                    <button 
-                      onClick={() => handlePlusClick(item)}
-                      disabled={item.status && item.status !== 'available'}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${item.status && item.status !== 'available' ? 'bg-gray-200 cursor-not-allowed' : 'bg-blue-100 hover:bg-blue-200'}`}
-                    >
-                      <Plus className="h-4 w-4 text-blue-600" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {equipment.length === 0 && (
   <div className="text-gray-500 text-sm">
     {selectedCategory ? `No ${selectedCategory} equipment found` : 'No equipment found'}
@@ -452,7 +514,7 @@ const EmployeeHome = () => {
               <div className="h-[140px] h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <div className="space-y-2">
                   {cartItems.map((item) =>  (
-                    <div key={item.id} className="flex items-center justify-between py-1.5">
+                    <div key={item.groupKey || item.id} className="flex items-center justify-between py-1.5">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                           {item.item_image_url || item.item_image ? (
@@ -480,16 +542,30 @@ const EmployeeHome = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <button 
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          onClick={() => handleQuantityChange(item.groupKey, item.quantity - 1)}
                           className="w-6 h-6 bg-red-50 border border-red-200 hover:bg-red-100 rounded-full flex items-center justify-center"
                         >
                           <span className="text-red-600 text-sm font-bold">−</span>
                         </button>
                         <span className="text-xs text-gray-600 min-w-[20px] text-center font-medium">x{item.quantity}</span>
                         <button 
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          className="w-6 h-6 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-full flex items-center justify-center">
-                          <Plus className="h-3 w-3 text-blue-600" />
+                          onClick={() => {
+                            const availableStock = item.totalStock || item.quantity || item.stock || 1;
+                            if (item.quantity >= availableStock) {
+                              alert(`Only ${availableStock} unit(s) available in stock.`);
+                              return;
+                            }
+                            handleQuantityChange(item.groupKey, item.quantity + 1);
+                          }}
+                          disabled={item.quantity >= (item.totalStock || item.quantity || item.stock || 1)}
+                          className={`w-6 h-6 border rounded-full flex items-center justify-center ${
+                            item.quantity >= (item.totalStock || item.quantity || item.stock || 1)
+                              ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
+                              : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                          }`}>
+                          <Plus className={`h-3 w-3 ${
+                            item.quantity >= (item.totalStock || item.quantity || item.stock || 1) ? 'text-gray-400' : 'text-blue-600'
+                          }`} />
                         </button>
                       </div>
                     </div>
